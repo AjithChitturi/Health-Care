@@ -1,50 +1,43 @@
 import React, { useState } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import LandingPage from './components/LandingPage';
+import AboutPage from './components/AboutPage';
+import Navbar from './components/Navbar';
+import NotFound from './components/NotFound';
 import { Questionnaire } from './components/Questionnaire';
 import { UserDashboard } from './components/UserDashboard';
 import { LoginForm } from './components/auth/LoginForm';
 import { RegisterForm } from './components/auth/RegisterForm';
 
-type Page = 'dashboard' | 'questionnaire' | 'login' | 'register';
-
 const App: React.FC = () => {
-  const [page, setPage] = useState<Page>(() => {
-    return localStorage.getItem('token') ? 'dashboard' : 'login';
-  });
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     setIsLoggedIn(false);
-    setPage('login');
   };
 
-  if (!isLoggedIn) {
-    if (page === 'register') {
-      return (
-        <div>
-          <RegisterForm onRegister={() => setPage('login')} />
-          <button onClick={() => setPage('login')}>Back to Login</button>
-        </div>
-      );
-    }
-    return (
-      <div>
-        <LoginForm onLogin={() => { setIsLoggedIn(true); setPage('dashboard'); }} />
-        <button onClick={() => setPage('register')}>Register</button>
-      </div>
-    );
-  }
-
   return (
-    <div>
-      <nav style={{ marginBottom: 20 }}>
-        <button onClick={() => setPage('dashboard')}>Dashboard</button>
-        <button onClick={() => setPage('questionnaire')}>Questionnaire</button>
-        <button onClick={handleLogout}>Logout</button>
-      </nav>
-      {page === 'dashboard' && <UserDashboard />}
-      {page === 'questionnaire' && <Questionnaire />}
-    </div>
+    <>
+      <Navbar isLoggedIn={isLoggedIn} onLogout={handleLogout} />
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/login" element={
+          isLoggedIn ? <Navigate to="/questionnaire" replace /> : <LoginForm onLogin={() => setIsLoggedIn(true)} />
+        } />
+        <Route path="/register" element={
+          isLoggedIn ? <Navigate to="/questionnaire" replace /> : <RegisterForm onRegister={() => { setIsLoggedIn(false); }} />
+        } />
+        <Route path="/dashboard" element={
+          isLoggedIn ? <UserDashboard /> : <Navigate to="/login" replace />
+        } />
+        <Route path="/questionnaire" element={
+          isLoggedIn ? <Questionnaire /> : <Navigate to="/login" replace />
+        } />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
   );
 };
 

@@ -1,0 +1,86 @@
+.landing-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
+  font-family: 'Segoe UI', Arial, sans-serif;
+  padding: 0 1rem;
+}
+.landing-header {
+  margin-top: 4rem;
+  text-align: center;
+}
+.landing-header h1 {
+  font-size: 2.8rem;
+  color: #2b5876;
+  margin-bottom: 1rem;
+  font-weight: 700;
+}
+.landing-motive {
+  font-size: 1.2rem;
+  color: #555;
+  max-width: 600px;
+  margin: 0 auto 2rem auto;
+}
+.landing-about {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 16px rgba(44, 62, 80, 0.08);
+  padding: 2rem;
+  margin: 2rem 0;
+  max-width: 600px;
+  width: 100%;
+}
+.landing-about h2 {
+  color: #2b5876;
+  margin-bottom: 0.5rem;
+}
+.landing-about p {
+  color: #333;
+  font-size: 1.1rem;
+}
+.landing-actions {
+  margin: 2rem 0;
+}
+.landing-btn {
+  background: linear-gradient(90deg, #36d1c4 0%, #2b5876 100%);
+  color: #fff;
+  padding: 0.9rem 2.2rem;
+  border: none;
+  border-radius: 30px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(44, 62, 80, 0.10);
+  transition: background 0.3s, transform 0.2s;
+  cursor: pointer;
+}
+.landing-btn:hover {
+  background: linear-gradient(90deg, #2b5876 0%, #36d1c4 100%);
+  transform: translateY(-2px) scale(1.04);
+}
+.landing-footer {
+  margin-top: auto;
+  padding: 1.5rem 0 1rem 0;
+  text-align: center;
+}
+.footer-link {
+  color: #2b5876;
+  text-decoration: underline;
+  font-size: 1rem;
+  font-weight: 500;
+}
+@media (max-width: 600px) {
+  .landing-header h1 {
+    font-size: 2rem;
+  }
+  .landing-about {
+    padding: 1rem;
+  }
+  .landing-btn {
+    font-size: 1rem;
+    padding: 0.7rem 1.5rem;
+  }
+}

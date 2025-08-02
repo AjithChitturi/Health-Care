@@ -1,0 +1,16 @@
+.notfound-container {
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.notfound-title {
+  font-size: 2.5rem;
+  color: #2b5876;
+  margin-bottom: 0.5rem;
+}
+.notfound-text {
+  font-size: 1.2rem;
+  color: #555;
+}
