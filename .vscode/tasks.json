@@ -1,0 +1,21 @@
+{
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  // for the documentation about the tasks.json format
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Start Django Backend",
+      "type": "shell",
+      "command": ".\\backend_env\\Scripts\\activate; python manage.py runserver",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Start Vite Frontend",
+      "type": "shell",
+      "command": "cd frontend; npm run dev",
+      "group": "build",
+      "problemMatcher": []
+    }
+  ]
+}
