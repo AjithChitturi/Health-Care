@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { api } from '../api'; // Your API utility
 
 // The form data structure remains the same
@@ -46,6 +46,15 @@ export const Questionnaire: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  // Check if user is authenticated
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setError('Please login first');
+      return;
+    }
+  }, []);
+
   const handleChange = (
   e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
 ) => {
@@ -56,7 +65,7 @@ export const Questionnaire: React.FC = () => {
   if (type === 'checkbox') {
     newValue = (e.target as HTMLInputElement).checked;
   } else if (type === 'number') {
-    newValue = value === '' ? '' : Number(value); // Change undefined to ''
+    newValue = value === '' ? '' : Number(value);
   }
 
   setForm((prev) => ({
@@ -66,33 +75,17 @@ export const Questionnaire: React.FC = () => {
 };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); // Prevent default form submission
+    e.preventDefault();
     setLoading(true);
     setError(null);
 
-    // Map the local state to the expected API structure before submission
-    const submissionData = {
-        ...form,
-        diabetes: form.diabetes_medical,
-        heart_disease: form.heart_disease_medical,
-        cancer: form.cancer_family,
-        other: form.other_family
-    };
-
     try {
-      // The API calls remain the same
-      await api.savePersonalInfo(submissionData);
-      await api.saveLifestyle(submissionData);
-      await api.saveMedicalHistory(submissionData);
-      await api.saveFamilyHistory(submissionData);
-      await api.saveMeasurements(submissionData);
-      await api.saveSymptoms(submissionData);
-      await api.savePreventiveCare(submissionData);
-      await api.submitQuestionnaire(submissionData);
-      
+      // Use the new single endpoint
+      await api.submitCompleteQuestionnaire(form);
       setSuccess(true);
     } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred during submission.');
+      console.error('Submission error:', err);
+      setError(err.response?.data?.message || err.message || 'An unexpected error occurred during submission.');
     } finally {
       setLoading(false);
     }

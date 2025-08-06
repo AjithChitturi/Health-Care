@@ -4,9 +4,34 @@ const API_BASE = 'http://localhost:8000/api';
 
 export const getToken = () => localStorage.getItem('token');
 
-const authHeaders = () => ({
-  headers: { Authorization: `Bearer ${getToken()}` }
+// Create axios instance with interceptor
+const apiClient = axios.create({
+  baseURL: API_BASE,
 });
+
+// Add token to all requests automatically
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = getToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Handle auth errors
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      window.location.href = '/login'; // Redirect to login
+    }
+    return Promise.reject(error);
+  }
+);
 
 export const api = {
   // Auth
@@ -15,28 +40,32 @@ export const api = {
   register: (data: { username: string; email: string; password: string; password2: string }) =>
     axios.post(`${API_BASE}/auth/register/`, data),
 
-  // Questionnaire sections
-  getPersonalInfo: () => axios.get(`${API_BASE}/personal-info/`, authHeaders()),
-  savePersonalInfo: (data: any) => axios.post(`${API_BASE}/personal-info/`, data, authHeaders()),
+  // NEW: Single endpoint for complete questionnaire
+  submitCompleteQuestionnaire: (data: any) => 
+    apiClient.post('/questionnaire/submit_complete/', data),
 
-  getLifestyle: () => axios.get(`${API_BASE}/lifestyle/`, authHeaders()),
-  saveLifestyle: (data: any) => axios.post(`${API_BASE}/lifestyle/`, data, authHeaders()),
+  // Keep individual endpoints for future use (optional)
+  getPersonalInfo: () => apiClient.get('/personal-info/'),
+  savePersonalInfo: (data: any) => apiClient.post('/personal-info/', data),
 
-  getMedicalHistory: () => axios.get(`${API_BASE}/medical-history/`, authHeaders()),
-  saveMedicalHistory: (data: any) => axios.post(`${API_BASE}/medical-history/`, data, authHeaders()),
+  getLifestyle: () => apiClient.get('/lifestyle/'),
+  saveLifestyle: (data: any) => apiClient.post('/lifestyle/', data),
 
-  getFamilyHistory: () => axios.get(`${API_BASE}/family-history/`, authHeaders()),
-  saveFamilyHistory: (data: any) => axios.post(`${API_BASE}/family-history/`, data, authHeaders()),
+  getMedicalHistory: () => apiClient.get('/medical-history/'),
+  saveMedicalHistory: (data: any) => apiClient.post('/medical-history/', data),
 
-  getMeasurements: () => axios.get(`${API_BASE}/measurements/`, authHeaders()),
-  saveMeasurements: (data: any) => axios.post(`${API_BASE}/measurements/`, data, authHeaders()),
+  getFamilyHistory: () => apiClient.get('/family-history/'),
+  saveFamilyHistory: (data: any) => apiClient.post('/family-history/', data),
 
-  getSymptoms: () => axios.get(`${API_BASE}/symptoms/`, authHeaders()),
-  saveSymptoms: (data: any) => axios.post(`${API_BASE}/symptoms/`, data, authHeaders()),
+  getMeasurements: () => apiClient.get('/measurements/'),
+  saveMeasurements: (data: any) => apiClient.post('/measurements/', data),
 
-  getPreventiveCare: () => axios.get(`${API_BASE}/preventive-care/`, authHeaders()),
-  savePreventiveCare: (data: any) => axios.post(`${API_BASE}/preventive-care/`, data, authHeaders()),
+  getSymptoms: () => apiClient.get('/symptoms/'),
+  saveSymptoms: (data: any) => apiClient.post('/symptoms/', data),
 
-  getQuestionnaire: () => axios.get(`${API_BASE}/questionnaire/`, authHeaders()),
-  submitQuestionnaire: (data: any) => axios.post(`${API_BASE}/questionnaire/`, data, authHeaders()),
+  getPreventiveCare: () => apiClient.get('/preventive-care/'),
+  savePreventiveCare: (data: any) => apiClient.post('/preventive-care/', data),
+
+  getQuestionnaire: () => apiClient.get('/questionnaire/'),
+  submitQuestionnaire: (data: any) => apiClient.post('/questionnaire/', data),
 };

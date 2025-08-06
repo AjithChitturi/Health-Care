@@ -1,6 +1,7 @@
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from .user_profile import UserProfile
+from rest_framework import status
 
 from rest_framework import generics
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -23,7 +24,8 @@ from .models import (
 )
 from .serializers import (
     PersonalInfoSerializer, LifestyleSerializer, MedicalHistorySerializer, FamilyHistorySerializer,
-    MeasurementsSerializer, SymptomsSerializer, PreventiveCareSerializer, HealthQuestionnaireSerializer
+    MeasurementsSerializer, SymptomsSerializer, PreventiveCareSerializer, HealthQuestionnaireSerializer,
+    CompleteQuestionnaireSerializer
 )
 
 class PersonalInfoViewSet(viewsets.ModelViewSet):
@@ -91,3 +93,16 @@ class HealthQuestionnaireViewSet(viewsets.ModelViewSet):
         pending_qs = HealthQuestionnaire.objects.filter(status='pending')
         serializer = self.get_serializer(pending_qs, many=True)
         return Response(serializer.data)
+
+    # NEW: Complete questionnaire submission endpoint
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def submit_complete(self, request):
+        serializer = CompleteQuestionnaireSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            questionnaire = serializer.save()
+            return Response({
+                'message': 'Questionnaire submitted successfully',
+                'id': questionnaire.id,
+                'status': questionnaire.status
+            }, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
