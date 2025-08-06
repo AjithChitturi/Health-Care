@@ -47,23 +47,23 @@ export const Questionnaire: React.FC = () => {
   const [success, setSuccess] = useState(false);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value, type } = e.target;
-    
-    let newValue: string | number | boolean = value;
+  e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+) => {
+  const { name, value, type } = e.target;
+  
+  let newValue: string | number | boolean = value;
 
-    if (type === 'checkbox') {
-      newValue = (e.target as HTMLInputElement).checked;
-    } else if (type === 'number') {
-      newValue = value === '' ? undefined : Number(value);
-    }
+  if (type === 'checkbox') {
+    newValue = (e.target as HTMLInputElement).checked;
+  } else if (type === 'number') {
+    newValue = value === '' ? '' : Number(value); // Change undefined to ''
+  }
 
-    setForm((prev) => ({
-      ...prev,
-      [name]: newValue,
-    }));
-  };
+  setForm((prev) => ({
+    ...prev,
+    [name]: newValue,
+  }));
+};
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); // Prevent default form submission
