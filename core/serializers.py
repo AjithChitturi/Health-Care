@@ -11,7 +11,12 @@ class PersonalInfoSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user = self.context['request'].user
-        return PersonalInfo.objects.create(user=user, **validated_data)
+        obj, created = PersonalInfo.objects.get_or_create(user=user, defaults=validated_data)
+        if not created:
+            for attr, value in validated_data.items():
+                setattr(obj, attr, value)
+            obj.save()
+        return obj
 
 class LifestyleSerializer(serializers.ModelSerializer):
     class Meta:
@@ -20,7 +25,12 @@ class LifestyleSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user = self.context['request'].user
-        return Lifestyle.objects.create(user=user, **validated_data)
+        obj, created = Lifestyle.objects.get_or_create(user=user, defaults=validated_data)
+        if not created:
+            for attr, value in validated_data.items():
+                setattr(obj, attr, value)
+            obj.save()
+        return obj
 
 class MedicalHistorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -29,7 +39,12 @@ class MedicalHistorySerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user = self.context['request'].user
-        return MedicalHistory.objects.create(user=user, **validated_data)
+        obj, created = MedicalHistory.objects.get_or_create(user=user, defaults=validated_data)
+        if not created:
+            for attr, value in validated_data.items():
+                setattr(obj, attr, value)
+            obj.save()
+        return obj
 
 class FamilyHistorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -38,7 +53,12 @@ class FamilyHistorySerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user = self.context['request'].user
-        return FamilyHistory.objects.create(user=user, **validated_data)
+        obj, created = FamilyHistory.objects.get_or_create(user=user, defaults=validated_data)
+        if not created:
+            for attr, value in validated_data.items():
+                setattr(obj, attr, value)
+            obj.save()
+        return obj
 
 class MeasurementsSerializer(serializers.ModelSerializer):
     class Meta:
@@ -47,7 +67,12 @@ class MeasurementsSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user = self.context['request'].user
-        return Measurements.objects.create(user=user, **validated_data)
+        obj, created = Measurements.objects.get_or_create(user=user, defaults=validated_data)
+        if not created:
+            for attr, value in validated_data.items():
+                setattr(obj, attr, value)
+            obj.save()
+        return obj
 
 class SymptomsSerializer(serializers.ModelSerializer):
     class Meta:
@@ -56,7 +81,12 @@ class SymptomsSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user = self.context['request'].user
-        return Symptoms.objects.create(user=user, **validated_data)
+        obj, created = Symptoms.objects.get_or_create(user=user, defaults=validated_data)
+        if not created:
+            for attr, value in validated_data.items():
+                setattr(obj, attr, value)
+            obj.save()
+        return obj
 
 class PreventiveCareSerializer(serializers.ModelSerializer):
     class Meta:
@@ -65,7 +95,12 @@ class PreventiveCareSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user = self.context['request'].user
-        return PreventiveCare.objects.create(user=user, **validated_data)
+        obj, created = PreventiveCare.objects.get_or_create(user=user, defaults=validated_data)
+        if not created:
+            for attr, value in validated_data.items():
+                setattr(obj, attr, value)
+            obj.save()
+        return obj
 
 class HealthQuestionnaireSerializer(serializers.ModelSerializer):
     personal_info = PersonalInfoSerializer()
