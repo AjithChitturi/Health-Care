@@ -69,12 +69,12 @@ class HealthQuestionnaireViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        """
+        This view should return a list of all questionnaires for an admin user,
+        and only the questionnaire for the currently authenticated user for non-admins.
+        """
         user = self.request.user
-        try:
-            profile = UserProfile.objects.get(user=user)
-        except UserProfile.DoesNotExist:
-            return HealthQuestionnaire.objects.none()
-        if profile.role == 'admin':
+        if user.is_staff: # Use is_staff for admin check
             return HealthQuestionnaire.objects.all()
         return HealthQuestionnaire.objects.filter(user=user)
 
@@ -82,9 +82,9 @@ class HealthQuestionnaireViewSet(viewsets.ModelViewSet):
     def review(self, request, pk=None):
         questionnaire = self.get_object()
         feedback = request.data.get('admin_feedback', '')
-        status = request.data.get('status', 'approved')
+        status_val = request.data.get('status', 'approved') # Renamed variable to avoid conflict
         questionnaire.admin_feedback = feedback
-        questionnaire.status = status
+        questionnaire.status = status_val
         questionnaire.save()
         return Response({'status': 'updated', 'admin_feedback': feedback})
 
@@ -94,7 +94,6 @@ class HealthQuestionnaireViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(pending_qs, many=True)
         return Response(serializer.data)
 
-    # NEW: Complete questionnaire submission endpoint
     @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def submit_complete(self, request):
         serializer = CompleteQuestionnaireSerializer(data=request.data, context={'request': request})
