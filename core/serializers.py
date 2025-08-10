@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import (
     PersonalInfo, Lifestyle, MedicalHistory, FamilyHistory, Measurements,
-    Symptoms, PreventiveCare, HealthQuestionnaire
+    Symptoms, PreventiveCare, HealthQuestionnaire, Suggestion, Recommendation
 )
 
 class PersonalInfoSerializer(serializers.ModelSerializer):
@@ -219,6 +219,18 @@ class CompleteQuestionnaireSerializer(serializers.Serializer):
         
         return questionnaire
 
+
+class RecommendationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Recommendation
+        fields = ['test_name', 'reason', 'category']
+
+class SuggestionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Suggestion
+        fields = ['suggestion_text', 'category']
+
+        
 class HealthQuestionnaireSerializer(serializers.ModelSerializer):
     personal_info = PersonalInfoSerializer()
     lifestyle = LifestyleSerializer()
@@ -227,6 +239,8 @@ class HealthQuestionnaireSerializer(serializers.ModelSerializer):
     measurements = MeasurementsSerializer()
     symptoms = SymptomsSerializer()
     preventive_care = PreventiveCareSerializer()
+    recommendations = RecommendationSerializer(many=True, read_only=True)
+    suggestions = SuggestionSerializer(many=True, read_only=True)
 
     class Meta:
         model = HealthQuestionnaire

@@ -1,0 +1,47 @@
+<!-- core/templates/reports/report_template.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Health Report for {{ q.user.username }}</title>
+    <style>
+        body { font-family: sans-serif; }
+        h1, h2, h3 { color: #333; }
+        .section { border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; border-radius: 5px; }
+        .feedback { background-color: #e6f7ff; border-left: 5px solid #0056b3; }
+        .recommendation { background-color: #fffbe6; border-left: 5px solid #ffc107; }
+    </style>
+</head>
+<body>
+    <h1>Health Assessment Report</h1>
+    <p><strong>User:</strong> {{ q.user.username }}</p>
+    <p><strong>Submitted On:</strong> {{ q.submitted_at|date:"F j, Y" }}</p>
+
+    <div class="section feedback">
+        <h3>Doctor's Feedback</h3>
+        <p><strong>Status:</strong> {{ q.status|title }}</p>
+        <p>{{ q.admin_feedback|linebreaksbr|default:"No feedback provided yet." }}</p>
+    </div>
+
+    <div class="section recommendation">
+        <h3>Automated Recommendations</h3>
+        <ul>
+            {% for rec in q.recommendations.all %}
+                <li><strong>{{ rec.test_name }} ({{ rec.category }}):</strong> {{ rec.reason }}</li>
+            {% empty %}
+                <li>No specific tests were automatically recommended.</li>
+            {% endfor %}
+        </ul>
+        <h3>Automated Suggestions</h3>
+        <ul>
+             {% for sug in q.suggestions.all %}
+                <li><strong>{{ sug.category }}:</strong> {{ sug.suggestion_text }}</li>
+            {% empty %}
+                <li>No specific lifestyle suggestions were automatically generated.</li>
+            {% endfor %}
+        </ul>
+    </div>
+    
+    <!-- You can add all the user-submitted data here in other sections -->
+
+</body>
+</html>

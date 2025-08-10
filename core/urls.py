@@ -19,5 +19,7 @@ router.register(r'questionnaire', HealthQuestionnaireViewSet)
 urlpatterns = [
     path('auth/register/', RegisterView.as_view(), name='auth_register'),
     path('auth/login/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
+    #path('questionnaire/<int:pk>/download/', download_report_view, name='download_report'),
+
 ]
 urlpatterns += router.urls

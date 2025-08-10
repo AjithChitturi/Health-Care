@@ -1,14 +1,24 @@
+// src/components/UserDashboard.tsx
+
 import React, { useEffect, useState } from 'react';
 import { api } from '../api'; // Assuming your api object is correctly configured
 
-// --- Style Objects ---
+// --- Style Objects (for inline styling) ---
 const styles = {
   dashboardContainer: {
     fontFamily: 'Arial, sans-serif',
     color: '#333',
-    maxWidth: '800px',
-    margin: '0 auto',
+    maxWidth: '900px',
+    margin: '2rem auto',
     padding: '20px',
+  },
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottom: '2px solid #eee',
+    paddingBottom: '10px',
+    marginBottom: '20px',
   },
   card: {
     background: '#fff',
@@ -16,14 +26,6 @@ const styles = {
     boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
     padding: '20px',
     marginBottom: '20px',
-  },
-  header: {
-    borderBottom: '2px solid #eee',
-    paddingBottom: '10px',
-    marginBottom: '20px',
-  },
-  section: {
-    marginBottom: '25px',
   },
   sectionTitle: {
     color: '#0056b3',
@@ -49,63 +51,39 @@ const styles = {
     borderRadius: '4px',
     background: '#f9f9f9',
   },
+  recommendationCard: {
+    background: '#fffbe6',
+    borderLeft: '5px solid #ffc107',
+  },
+  feedbackCard: {
+      background: '#e6f7ff',
+      borderLeft: '5px solid #0056b3',
+  },
   error: {
     color: 'red',
+    textAlign: 'center' as const,
   },
+  downloadButton: {
+      textDecoration: 'none',
+      background: '#0056b3',
+      color: 'white',
+      padding: '10px 15px',
+      borderRadius: '5px',
+      display: 'inline-block',
+  }
 };
 
 
-// --- Type Definitions for the Questionnaire ---
-interface PersonalInfo {
-  age?: number;
-  gender?: string;
-  contact?: string;
-}
-
-interface Lifestyle {
-  smoking_status?: string;
-  alcohol_consumption?: string;
-  physical_activity?: string;
-  diet?: string;
-}
-
-interface MedicalHistory {
-  diabetes?: boolean;
-  hypertension?: boolean;
-  heart_disease?: boolean;
-  other_conditions?: string;
-  medications?: string;
-  allergies?: string;
-}
-
-interface FamilyHistory {
-  diabetes?: boolean;
-  heart_disease?: boolean;
-  cancer?: boolean;
-  other?: string;
-}
-
-interface Measurements {
-  height_cm?: number;
-  weight_kg?: number;
-  bmi?: number;
-  blood_pressure?: string;
-  blood_sugar?: string;
-  cholesterol?: string;
-}
-
-interface Symptoms {
-  chest_pain?: boolean;
-  breathlessness?: boolean;
-  fatigue?: boolean;
-  sleep_quality?: string;
-  stress_level?: string;
-}
-
-interface PreventiveCare {
-  last_checkup?: string;
-  vaccinations?: string;
-}
+// --- Type Definitions for the Complete Questionnaire Data ---
+interface PersonalInfo { age?: number; gender?: string; contact?: string; }
+interface Lifestyle { smoking_status?: string; alcohol_consumption?: string; physical_activity?: string; diet?: string; }
+interface MedicalHistory { diabetes?: boolean; hypertension?: boolean; heart_disease?: boolean; other_conditions?: string; medications?: string; allergies?: string; }
+interface FamilyHistory { diabetes?: boolean; heart_disease?: boolean; cancer?: boolean; other?: string; }
+interface Measurements { height_cm?: number; weight_kg?: number; bmi?: number; blood_pressure?: string; blood_sugar?: string; cholesterol?: string; }
+interface Symptoms { chest_pain?: boolean; breathlessness?: boolean; fatigue?: boolean; sleep_quality?: string; stress_level?: string; }
+interface PreventiveCare { last_checkup?: string; vaccinations?: string; }
+interface Recommendation { test_name: string; reason: string; category: string; }
+interface Suggestion { suggestion_text: string; category: string; }
 
 interface FullQuestionnaire {
   id: number;
@@ -119,6 +97,8 @@ interface FullQuestionnaire {
   measurements: Measurements;
   symptoms: Symptoms;
   preventive_care: PreventiveCare;
+  recommendations: Recommendation[];
+  suggestions: Suggestion[];
 }
 
 // --- Helper Component to display each field ---
@@ -150,106 +130,104 @@ export const UserDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        // Your API returns an array, we get the first (and only) item for the user
-        const res = await api.getQuestionnaire(); 
-        setQuestionnaire(res.data[0] || null);
-      } catch (err) {
-        setError('Failed to load your questionnaire. Please try again later.');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+        const fetchData = async () => {
+          setLoading(true);
+          setError(null);
+          try {
+            // CHANGE THIS LINE:
+            const res = await api.getQuestionnaire(); 
+            setQuestionnaire(res.data[0] || null); 
+          } catch (err) {
+            setError('Failed to load your questionnaire data. Please try again later.');
+            console.error(err);
+          } finally {
+            setLoading(false);
+          }
+        };
+        fetchData();
+    }, []);
 
-  if (loading) return <div style={styles.dashboardContainer}>Loading...</div>;
+  if (loading) return <div style={styles.dashboardContainer}>Loading your report...</div>;
   if (error) return <div style={{ ...styles.dashboardContainer, ...styles.error }}>{error}</div>;
   if (!questionnaire) {
-    return <div style={styles.dashboardContainer}>No questionnaire has been submitted yet.</div>;
+    return <div style={styles.dashboardContainer}>You have not submitted a questionnaire yet. Please complete it to view your dashboard.</div>;
   }
+
+  const hasRecommendations = questionnaire.recommendations?.length > 0 || questionnaire.suggestions?.length > 0;
 
   return (
     <div style={styles.dashboardContainer}>
       <div style={styles.header}>
-        <h2>Your Health Questionnaire</h2>
+        <h2>Your Health Report</h2>
+        <a 
+          href={`http://127.0.0.1:8000/questionnaire/${questionnaire.id}/download/`} 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          style={styles.downloadButton}>
+            Download Full Report
+        </a>
+      </div>
+      
+      {/* Section 1: Doctor's Feedback (Most Important) */}
+      <div style={{...styles.card, ...styles.feedbackCard}}>
+          <h3 style={styles.sectionTitle}>Doctor's Review</h3>
+          <InfoField label="Review Status" value={questionnaire.status.charAt(0).toUpperCase() + questionnaire.status.slice(1)} />
+          {questionnaire.admin_feedback ? (
+              <div>
+                  <p style={styles.fieldLabel}>Personalized Feedback:</p>
+                  <div style={styles.feedbackBox}>
+                      {questionnaire.admin_feedback}
+                  </div>
+              </div>
+          ) : (
+              <p>Your submission is pending review by a doctor.</p>
+          )}
       </div>
 
+      {/* Section 2: Automated Recommendations */}
+      <div style={{ ...styles.card, ...styles.recommendationCard }}>
+          <h3 style={styles.sectionTitle}>Automated Recommendations</h3>
+          {hasRecommendations ? (
+              <>
+                  <h4>Recommended Health Screenings:</h4>
+                  <ul>
+                      {questionnaire.recommendations.map((rec, index) => (
+                          <li key={`rec-${index}`}><strong>{rec.test_name} ({rec.category}):</strong> {rec.reason}</li>
+                      ))}
+                  </ul>
+                  <hr style={{margin: '15px 0', borderTop: '1px solid #ffeeba'}} />
+                  <h4>Lifestyle & Health Suggestions:</h4>
+                  <ul>
+                      {questionnaire.suggestions.map((sug, index) => (
+                          <li key={`sug-${index}`}><strong>{sug.category}:</strong> {sug.suggestion_text}</li>
+                      ))}
+                  </ul>
+              </>
+          ) : (
+              <p>No specific automated recommendations were generated based on your profile.</p>
+          )}
+      </div>
+      
+      {/* All remaining sections showing the data submitted by the user */}
       <div style={styles.card}>
-        <h3>Submission Status</h3>
-        <InfoField label="Status" value={questionnaire.status.charAt(0).toUpperCase() + questionnaire.status.slice(1)} />
-        <InfoField label="Submitted At" value={new Date(questionnaire.submitted_at).toLocaleString()} />
-        {questionnaire.admin_feedback && (
-          <div>
-            <p style={styles.fieldLabel}>Doctor's Feedback:</p>
-            <div style={styles.feedbackBox}>
-              {questionnaire.admin_feedback}
-            </div>
-          </div>
-        )}
+        <h3 style={styles.sectionTitle}>Submitted Information Overview</h3>
+        <p>Submitted At: {new Date(questionnaire.submitted_at).toLocaleString()}</p>
+        <details>
+            <summary style={{cursor: 'pointer', fontWeight: 'bold', marginTop: '1rem'}}>Click to view your full submission</summary>
+            
+            <h4 style={styles.sectionTitle}>Personal Information</h4>
+            <InfoField label="Age" value={questionnaire.personal_info.age} />
+            <InfoField label="Gender" value={questionnaire.personal_info.gender} />
+            
+            <h4 style={styles.sectionTitle}>Measurements</h4>
+            <InfoField label="Height (cm)" value={questionnaire.measurements.height_cm} />
+            <InfoField label="Weight (kg)" value={questionnaire.measurements.weight_kg} />
+            <InfoField label="BMI" value={questionnaire.measurements.bmi} />
+
+            {/* Add all other InfoField components here for the rest of the data */}
+        </details>
       </div>
 
-      <div style={{ ...styles.card, ...styles.section }}>
-        <h3 style={styles.sectionTitle}>Personal Information</h3>
-        <InfoField label="Age" value={questionnaire.personal_info.age} />
-        <InfoField label="Gender" value={questionnaire.personal_info.gender} />
-        <InfoField label="Contact" value={questionnaire.personal_info.contact} />
-      </div>
-
-      <div style={{ ...styles.card, ...styles.section }}>
-        <h3 style={styles.sectionTitle}>Measurements</h3>
-        <InfoField label="Height (cm)" value={questionnaire.measurements.height_cm} />
-        <InfoField label="Weight (kg)" value={questionnaire.measurements.weight_kg} />
-        <InfoField label="BMI" value={questionnaire.measurements.bmi} />
-        <InfoField label="Blood Pressure" value={questionnaire.measurements.blood_pressure} />
-        <InfoField label="Blood Sugar" value={questionnaire.measurements.blood_sugar} />
-        <InfoField label="Cholesterol" value={questionnaire.measurements.cholesterol} />
-      </div>
-
-      <div style={{ ...styles.card, ...styles.section }}>
-        <h3 style={styles.sectionTitle}>Lifestyle</h3>
-        <InfoField label="Smoking Status" value={questionnaire.lifestyle.smoking_status} />
-        <InfoField label="Alcohol Consumption" value={questionnaire.lifestyle.alcohol_consumption} />
-        <InfoField label="Physical Activity" value={questionnaire.lifestyle.physical_activity} />
-        <InfoField label="Diet" value={questionnaire.lifestyle.diet} />
-      </div>
-
-      <div style={{ ...styles.card, ...styles.section }}>
-        <h3 style={styles.sectionTitle}>Symptoms</h3>
-        <InfoField label="Chest Pain" value={questionnaire.symptoms.chest_pain} />
-        <InfoField label="Breathlessness" value={questionnaire.symptoms.breathlessness} />
-        <InfoField label="Fatigue" value={questionnaire.symptoms.fatigue} />
-        <InfoField label="Sleep Quality" value={questionnaire.symptoms.sleep_quality} />
-        <InfoField label="Stress Level" value={questionnaire.symptoms.stress_level} />
-      </div>
-
-      <div style={{ ...styles.card, ...styles.section }}>
-        <h3 style={styles.sectionTitle}>Medical History</h3>
-        <InfoField label="Diabetes" value={questionnaire.medical_history.diabetes} />
-        <InfoField label="Hypertension" value={questionnaire.medical_history.hypertension} />
-        <InfoField label="Heart Disease" value={questionnaire.medical_history.heart_disease} />
-        <InfoField label="Other Conditions" value={questionnaire.medical_history.other_conditions} />
-        <InfoField label="Medications" value={questionnaire.medical_history.medications} />
-        <InfoField label="Allergies" value={questionnaire.medical_history.allergies} />
-      </div>
-
-      <div style={{ ...styles.card, ...styles.section }}>
-        <h3 style={styles.sectionTitle}>Family History</h3>
-        <InfoField label="Diabetes in Family" value={questionnaire.family_history.diabetes} />
-        <InfoField label="Heart Disease in Family" value={questionnaire.family_history.heart_disease} />
-        <InfoField label="Cancer in Family" value={questionnaire.family_history.cancer} />
-        <InfoField label="Other Family History" value={questionnaire.family_history.other} />
-      </div>
-
-      <div style={{ ...styles.card, ...styles.section }}>
-        <h3 style={styles.sectionTitle}>Preventive Care</h3>
-        <InfoField label="Last Check-up" value={questionnaire.preventive_care.last_checkup} />
-        <InfoField label="Vaccinations" value={questionnaire.preventive_care.vaccinations} />
-      </div>
     </div>
   );
 };

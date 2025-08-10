@@ -67,3 +67,21 @@ class HealthQuestionnaire(models.Model):
     submitted_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=[('pending','Pending Review'),('approved','Approved')], default='pending')
     admin_feedback = models.TextField(blank=True)
+
+
+class Recommendation(models.Model):
+    questionnaire = models.ForeignKey(HealthQuestionnaire, related_name='recommendations', on_delete=models.CASCADE)
+    test_name = models.CharField(max_length=200)
+    reason = models.TextField()
+    category = models.CharField(max_length=50, default='Screening') 
+
+    def __str__(self):
+        return f"Recommendation for {self.questionnaire.user.username}: {self.test_name}"
+
+class Suggestion(models.Model):
+    questionnaire = models.ForeignKey(HealthQuestionnaire, related_name='suggestions', on_delete=models.CASCADE)
+    suggestion_text = models.TextField()
+    category = models.CharField(max_length=50, default='Lifestyle') 
+
+    def __str__(self):
+        return f"Suggestion for {self.questionnaire.user.username}"

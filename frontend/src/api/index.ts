@@ -1,10 +1,14 @@
 import axios from 'axios';
 
-const API_BASE = 'http://localhost:8000/api';
+// NOTE: I am assuming your Django URLs do NOT have a '/api' prefix
+// based on the urls.py you showed me earlier. If they DO, then keep
+// your original API_BASE. If not, this is the correct URL.
+const API_BASE = 'http://127.0.0.1:8000/';
 
 export const getToken = () => localStorage.getItem('token');
 
 // Create axios instance with interceptor
+// This is your configured client that knows the base URL and how to handle tokens.
 const apiClient = axios.create({
   baseURL: API_BASE,
 });
@@ -21,7 +25,7 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Handle auth errors
+// Handle auth errors - This is a great feature you built! It will be kept.
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -33,39 +37,54 @@ apiClient.interceptors.response.use(
   }
 );
 
+
+// Your complete API object
 export const api = {
-  // Auth
+  // --- AUTHENTICATION ---
+  // IMPROVED: Switched to use `apiClient` for consistency and to enable 401 error handling.
   login: (data: { username: string; password: string }) =>
-    axios.post(`${API_BASE}/auth/login/`, data),
+    apiClient.post('auth/login/', data),
+
   register: (data: { username: string; email: string; password: string; password2: string }) =>
-    axios.post(`${API_BASE}/auth/register/`, data),
+    apiClient.post('auth/register/', data),
 
-  // NEW: Single endpoint for complete questionnaire
-  submitCompleteQuestionnaire: (data: any) => 
-    apiClient.post('/questionnaire/submit_complete/', data),
 
-  // Keep individual endpoints for future use (optional)
-  getPersonalInfo: () => apiClient.get('/personal-info/'),
-  savePersonalInfo: (data: any) => apiClient.post('/personal-info/', data),
+  // --- QUESTIONNAIRE SUBMISSION ---
+  submitCompleteQuestionnaire: (data: any) =>
+    apiClient.post('questionnaire/submit_complete/', data),
 
-  getLifestyle: () => apiClient.get('/lifestyle/'),
-  saveLifestyle: (data: any) => apiClient.post('/lifestyle/', data),
 
-  getMedicalHistory: () => apiClient.get('/medical-history/'),
-  saveMedicalHistory: (data: any) => apiClient.post('/medical-history/', data),
+  // --- DATA FETCHING FOR DASHBOARDS ---
+  // This one already existed and is correct for UserDashboard
+  getQuestionnaire: () => apiClient.get('questionnaire/'),
 
-  getFamilyHistory: () => apiClient.get('/family-history/'),
-  saveFamilyHistory: (data: any) => apiClient.post('/family-history/', data),
+  // THIS IS THE NEW FUNCTION THAT FIXES YOUR ERROR
+  // For AdminDashboard to get submissions needing review
+  getPendingReviews: () => apiClient.get('questionnaire/pending/'),
 
-  getMeasurements: () => apiClient.get('/measurements/'),
-  saveMeasurements: (data: any) => apiClient.post('/measurements/', data),
 
-  getSymptoms: () => apiClient.get('/symptoms/'),
-  saveSymptoms: (data: any) => apiClient.post('/symptoms/', data),
+  // --- INDIVIDUAL GET/SAVE (for future use - no changes needed) ---
+  getPersonalInfo: () => apiClient.get('personal-info/'),
+  savePersonalInfo: (data: any) => apiClient.post('personal-info/', data),
 
-  getPreventiveCare: () => apiClient.get('/preventive-care/'),
-  savePreventiveCare: (data: any) => apiClient.post('/preventive-care/', data),
+  getLifestyle: () => apiClient.get('lifestyle/'),
+  saveLifestyle: (data: any) => apiClient.post('lifestyle/', data),
 
-  getQuestionnaire: () => apiClient.get('/questionnaire/'),
-  submitQuestionnaire: (data: any) => apiClient.post('/questionnaire/', data),
+  getMedicalHistory: () => apiClient.get('medical-history/'),
+  saveMedicalHistory: (data: any) => apiClient.post('medical-history/', data),
+
+  getFamilyHistory: () => apiClient.get('family-history/'),
+  saveFamilyHistory: (data: any) => apiClient.post('family-history/', data),
+
+  getMeasurements: () => apiClient.get('measurements/'),
+  saveMeasurements: (data: any) => apiClient.post('measurements/', data),
+
+  getSymptoms: () => apiClient.get('symptoms/'),
+  saveSymptoms: (data: any) => apiClient.post('symptoms/', data),
+
+  getPreventiveCare: () => apiClient.get('preventive-care/'),
+  savePreventiveCare: (data: any) => apiClient.post('preventive-care/', data),
+
+  // Redundant but keeping it for now
+  submitQuestionnaire: (data: any) => apiClient.post('questionnaire/', data),
 };
