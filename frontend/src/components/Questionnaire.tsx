@@ -1,5 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../api'; // Your API utility
+import { api } from '../api';
+import { 
+  User, 
+  Heart, 
+  Activity, 
+  Stethoscope, 
+  Users, 
+  Scale, 
+  Calendar,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  FileText
+} from 'lucide-react';
 
 // The form data structure remains the same
 type QuestionnaireForm = {
@@ -40,6 +53,106 @@ type QuestionnaireForm = {
   vaccinations?: string;
 };
 
+const SectionCard: React.FC<{ 
+  icon: React.ReactNode; 
+  title: string; 
+  children: React.ReactNode;
+  iconBg?: string;
+}> = ({ icon, title, children, iconBg = "from-[#4C7B4C] to-[#5a8a5a]" }) => (
+  <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300">
+    <div className="p-6 border-b border-gray-100 bg-[#F5F9F5]">
+      <div className="flex items-center gap-4">
+        <div className={`p-3 rounded-xl bg-gradient-to-br ${iconBg} shadow-lg`}>
+          {icon}
+        </div>
+        <h2 className="text-2xl font-bold text-gray-800">{title}</h2>
+      </div>
+    </div>
+    <div className="p-8">
+      {children}
+    </div>
+  </div>
+);
+
+const InputField: React.FC<{
+  label: string;
+  id: string;
+  name: string;
+  type?: string;
+  placeholder?: string;
+  value: any;
+  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
+  options?: { value: string; label: string }[];
+  className?: string;
+  required?: boolean;
+}> = ({ 
+  label, 
+  id, 
+  name, 
+  type = "text", 
+  placeholder, 
+  value, 
+  onChange, 
+  options, 
+  className = "",
+  required = false 
+}) => (
+  <div className={`space-y-2 ${className}`}>
+    <label htmlFor={id} className="block text-sm font-semibold text-gray-700">
+      {label}
+      {required && <span className="text-red-500 ml-1">*</span>}
+    </label>
+    {options ? (
+      <select
+        id={id}
+        name={name}
+        value={value || ''}
+        onChange={onChange}
+        className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#4C7B4C] focus:border-transparent transition-all duration-300 bg-white hover:border-gray-400"
+      >
+        <option value="">Select...</option>
+        {options.map(option => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    ) : (
+      <input
+        type={type}
+        id={id}
+        name={name}
+        placeholder={placeholder}
+        value={value || ''}
+        onChange={onChange}
+        className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#4C7B4C] focus:border-transparent transition-all duration-300 hover:border-gray-400"
+      />
+    )}
+  </div>
+);
+
+const CheckboxField: React.FC<{
+  label: string;
+  id: string;
+  name: string;
+  checked: boolean;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}> = ({ label, id, name, checked, onChange }) => (
+  <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-[#F5F9F5] transition-colors duration-200">
+    <input
+      id={id}
+      name={name}
+      type="checkbox"
+      checked={checked}
+      onChange={onChange}
+      className="h-5 w-5 text-[#4C7B4C] border-2 border-gray-300 rounded focus:ring-2 focus:ring-[#4C7B4C] focus:ring-offset-2 transition-colors duration-200"
+    />
+    <label htmlFor={id} className="text-sm font-medium text-gray-700 cursor-pointer">
+      {label}
+    </label>
+  </div>
+);
+
 export const Questionnaire: React.FC = () => {
   const [form, setForm] = useState<QuestionnaireForm>({});
   const [loading, setLoading] = useState(false);
@@ -56,23 +169,23 @@ export const Questionnaire: React.FC = () => {
   }, []);
 
   const handleChange = (
-  e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-) => {
-  const { name, value, type } = e.target;
-  
-  let newValue: string | number | boolean = value;
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value, type } = e.target;
+    
+    let newValue: string | number | boolean = value;
 
-  if (type === 'checkbox') {
-    newValue = (e.target as HTMLInputElement).checked;
-  } else if (type === 'number') {
-    newValue = value === '' ? '' : Number(value);
-  }
+    if (type === 'checkbox') {
+      newValue = (e.target as HTMLInputElement).checked;
+    } else if (type === 'number') {
+      newValue = value === '' ? '' : Number(value);
+    }
 
-  setForm((prev) => ({
-    ...prev,
-    [name]: newValue,
-  }));
-};
+    setForm((prev) => ({
+      ...prev,
+      [name]: newValue,
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,7 +193,6 @@ export const Questionnaire: React.FC = () => {
     setError(null);
 
     try {
-      // Use the new single endpoint
       await api.submitCompleteQuestionnaire(form);
       setSuccess(true);
     } catch (err: any) {
@@ -93,228 +205,456 @@ export const Questionnaire: React.FC = () => {
 
   if (success) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <div className="p-10 bg-white rounded-lg shadow-xl text-center">
-          <h2 className="text-2xl font-bold text-green-600 mb-4">Thank You!</h2>
-          <p className="text-gray-700">Your health questionnaire has been submitted successfully.</p>
+      <div className="min-h-screen bg-[#F5F9F5] flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8 text-center border border-gray-100">
+          <div className="mb-6">
+            <div className="mx-auto w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center mb-4">
+              <CheckCircle2 className="h-8 w-8 text-white" />
+            </div>
+            <h2 className="text-3xl font-bold text-green-600 mb-2">Thank You!</h2>
+            <p className="text-gray-600 leading-relaxed">
+              Your health questionnaire has been submitted successfully. Our medical team will review your information and provide personalized recommendations.
+            </p>
+          </div>
+          <div className="bg-[#F5F9F5] rounded-xl p-4">
+            <p className="text-sm text-gray-600">
+              You'll receive your detailed health report within 24-48 hours. Check your dashboard for updates.
+            </p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen p-4 sm:p-8">
-      <div className="max-w-4xl mx-auto bg-white p-8 rounded-2xl shadow-lg">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">Health Questionnaire</h1>
-        <p className="text-gray-600 mb-8">Please fill out the form below with the most accurate information.</p>
+    <div className="min-h-screen bg-[#F5F9F5] py-8 px-4">
+      <div className="max-w-4xl mx-auto space-y-8">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <div className="p-3 bg-gradient-to-br from-[#4C7B4C] to-[#5a8a5a] rounded-2xl shadow-lg">
+              <FileText className="h-8 w-8 text-white" />
+            </div>
+          </div>
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">Health Questionnaire</h1>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+            Help us understand your health profile to provide personalized recommendations and insights.
+          </p>
+        </div>
         
-        <form onSubmit={handleSubmit}>
-          {/* --- Personal Information Section --- */}
-          <section className="mb-10 p-6 border border-gray-200 rounded-lg">
-            <h2 className="text-2xl font-semibold text-gray-700 mb-6 border-b pb-3">Personal Information</h2>
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Personal Information Section */}
+          <SectionCard 
+            icon={<User className="h-6 w-6 text-white" />}
+            title="Personal Information"
+          >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label htmlFor="age" className="block text-sm font-medium text-gray-700 mb-1">Age</label>
-                <input type="number" id="age" name="age" value={form.age || ''} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"/>
+              <InputField
+                label="Age"
+                id="age"
+                name="age"
+                type="number"
+                placeholder="Enter your age"
+                value={form.age}
+                onChange={handleChange}
+                required
+              />
+              <InputField
+                label="Gender"
+                id="gender"
+                name="gender"
+                value={form.gender}
+                onChange={handleChange}
+                options={[
+                  { value: "male", label: "Male" },
+                  { value: "female", label: "Female" },
+                  { value: "other", label: "Other" }
+                ]}
+                required
+              />
+              <InputField
+                label="Contact (Phone or Email)"
+                id="contact"
+                name="contact"
+                type="text"
+                placeholder="Your preferred contact method"
+                value={form.contact}
+                onChange={handleChange}
+                className="md:col-span-2"
+              />
+            </div>
+          </SectionCard>
+
+          {/* Lifestyle Section */}
+          <SectionCard 
+            icon={<Activity className="h-6 w-6 text-white" />}
+            title="Lifestyle"
+            iconBg="from-blue-500 to-blue-600"
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <InputField
+                label="Smoking Status"
+                id="smoking_status"
+                name="smoking_status"
+                value={form.smoking_status}
+                onChange={handleChange}
+                options={[
+                  { value: "never", label: "Never Smoked" },
+                  { value: "former", label: "Former Smoker" },
+                  { value: "current", label: "Current Smoker" }
+                ]}
+              />
+              <InputField
+                label="Alcohol Consumption"
+                id="alcohol_consumption"
+                name="alcohol_consumption"
+                placeholder="e.g., 2 drinks per week"
+                value={form.alcohol_consumption}
+                onChange={handleChange}
+              />
+              <InputField
+                label="Physical Activity"
+                id="physical_activity"
+                name="physical_activity"
+                placeholder="e.g., 3 times a week for 30 minutes"
+                value={form.physical_activity}
+                onChange={handleChange}
+                className="md:col-span-2"
+              />
+              <InputField
+                label="General Diet Description"
+                id="diet"
+                name="diet"
+                placeholder="e.g., Balanced, Vegetarian, Low-carb"
+                value={form.diet}
+                onChange={handleChange}
+                className="md:col-span-2"
+              />
+            </div>
+          </SectionCard>
+
+          {/* Medical & Family History Section */}
+          <SectionCard 
+            icon={<Heart className="h-6 w-6 text-white" />}
+            title="Medical & Family History"
+            iconBg="from-red-500 to-red-600"
+          >
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Personal Medical History */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <Stethoscope className="h-5 w-5 text-red-500" />
+                  Your Medical Conditions
+                </h3>
+                <div className="space-y-2">
+                  <CheckboxField
+                    label="Diabetes"
+                    id="diabetes_medical"
+                    name="diabetes_medical"
+                    checked={!!form.diabetes_medical}
+                    onChange={handleChange}
+                  />
+                  <CheckboxField
+                    label="Hypertension (High Blood Pressure)"
+                    id="hypertension"
+                    name="hypertension"
+                    checked={!!form.hypertension}
+                    onChange={handleChange}
+                  />
+                  <CheckboxField
+                    label="Heart Disease"
+                    id="heart_disease_medical"
+                    name="heart_disease_medical"
+                    checked={!!form.heart_disease_medical}
+                    onChange={handleChange}
+                  />
+                </div>
               </div>
-              <div>
-                <label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
-                <select id="gender" name="gender" value={form.gender || ''} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                  <option value="">Select...</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-              <div className="md:col-span-2">
-                <label htmlFor="contact" className="block text-sm font-medium text-gray-700 mb-1">Contact (Phone or Email)</label>
-                <input type="text" id="contact" name="contact" value={form.contact || ''} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"/>
+
+              {/* Family Medical History */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <Users className="h-5 w-5 text-red-500" />
+                  Family History (Parents, Siblings)
+                </h3>
+                <div className="space-y-2">
+                  <CheckboxField
+                    label="Diabetes"
+                    id="diabetes_family"
+                    name="diabetes_family"
+                    checked={!!form.diabetes_family}
+                    onChange={handleChange}
+                  />
+                  <CheckboxField
+                    label="Heart Disease"
+                    id="heart_disease_family"
+                    name="heart_disease_family"
+                    checked={!!form.heart_disease_family}
+                    onChange={handleChange}
+                  />
+                  <CheckboxField
+                    label="Cancer"
+                    id="cancer_family"
+                    name="cancer_family"
+                    checked={!!form.cancer_family}
+                    onChange={handleChange}
+                  />
+                </div>
               </div>
             </div>
-          </section>
 
-          {/* --- Lifestyle Section --- */}
-          <section className="mb-10 p-6 border border-gray-200 rounded-lg">
-             <h2 className="text-2xl font-semibold text-gray-700 mb-6 border-b pb-3">Lifestyle</h2>
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 <div>
-                    <label htmlFor="smoking_status" className="block text-sm font-medium text-gray-700 mb-1">Smoking Status</label>
-                    <select id="smoking_status" name="smoking_status" value={form.smoking_status || ''} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                        <option value="">Select...</option>
-                        <option value="never">Never Smoked</option>
-                        <option value="former">Former Smoker</option>
-                        <option value="current">Current Smoker</option>
-                    </select>
-                 </div>
-                 <div>
-                    <label htmlFor="alcohol_consumption" className="block text-sm font-medium text-gray-700 mb-1">Alcohol Consumption</label>
-                    <input type="text" id="alcohol_consumption" name="alcohol_consumption" placeholder="e.g., 2 drinks per week" value={form.alcohol_consumption || ''} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"/>
-                </div>
-                <div className="md:col-span-2">
-                    <label htmlFor="physical_activity" className="block text-sm font-medium text-gray-700 mb-1">Physical Activity</label>
-                    <input type="text" id="physical_activity" name="physical_activity" placeholder="e.g., 3 times a week for 30 minutes" value={form.physical_activity || ''} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"/>
-                </div>
-                 <div className="md:col-span-2">
-                    <label htmlFor="diet" className="block text-sm font-medium text-gray-700 mb-1">General Diet Description</label>
-                    <input type="text" id="diet" name="diet" placeholder="e.g., Balanced, Vegetarian, Low-carb" value={form.diet || ''} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"/>
-                </div>
+            {/* Additional Details */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8 pt-8 border-t border-gray-200">
+              <InputField
+                label="Other Personal Conditions"
+                id="other_conditions"
+                name="other_conditions"
+                placeholder="List any other medical conditions"
+                value={form.other_conditions}
+                onChange={handleChange}
+              />
+              <InputField
+                label="Other Family Conditions"
+                id="other_family"
+                name="other_family"
+                placeholder="List any other family medical history"
+                value={form.other_family}
+                onChange={handleChange}
+              />
+              <InputField
+                label="Current Medications"
+                id="medications"
+                name="medications"
+                placeholder="List current medications (comma-separated)"
+                value={form.medications}
+                onChange={handleChange}
+              />
+              <InputField
+                label="Known Allergies"
+                id="allergies"
+                name="allergies"
+                placeholder="List known allergies (comma-separated)"
+                value={form.allergies}
+                onChange={handleChange}
+              />
             </div>
-          </section>
+          </SectionCard>
 
-          {/* --- Medical & Family History --- */}
-            <section className="mb-10 p-6 border border-gray-200 rounded-lg">
-                <h2 className="text-2xl font-semibold text-gray-700 mb-6 border-b pb-3">Medical History</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
-                    {/* Personal Medical History */}
-                    <div>
-                        <h3 className="text-lg font-medium text-gray-800 mb-3">Your Conditions</h3>
-                        <div className="space-y-4">
-                            <div className="flex items-center">
-                                <input id="diabetes_medical" name="diabetes_medical" type="checkbox" checked={!!form.diabetes_medical} onChange={handleChange} className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"/>
-                                <label htmlFor="diabetes_medical" className="ml-3 block text-sm font-medium text-gray-700">Diabetes</label>
-                            </div>
-                            <div className="flex items-center">
-                                <input id="hypertension" name="hypertension" type="checkbox" checked={!!form.hypertension} onChange={handleChange} className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"/>
-                                <label htmlFor="hypertension" className="ml-3 block text-sm font-medium text-gray-700">Hypertension (High Blood Pressure)</label>
-                            </div>
-                            <div className="flex items-center">
-                                <input id="heart_disease_medical" name="heart_disease_medical" type="checkbox" checked={!!form.heart_disease_medical} onChange={handleChange} className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"/>
-                                <label htmlFor="heart_disease_medical" className="ml-3 block text-sm font-medium text-gray-700">Heart Disease</label>
-                            </div>
-                        </div>
-                    </div>
-                    {/* Family Medical History */}
-                     <div>
-                        <h3 className="text-lg font-medium text-gray-800 mb-3">Family History (Parents, Siblings)</h3>
-                        <div className="space-y-4">
-                           <div className="flex items-center">
-                                <input id="diabetes_family" name="diabetes_family" type="checkbox" checked={!!form.diabetes_family} onChange={handleChange} className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"/>
-                                <label htmlFor="diabetes_family" className="ml-3 block text-sm font-medium text-gray-700">Diabetes</label>
-                            </div>
-                           <div className="flex items-center">
-                                <input id="heart_disease_family" name="heart_disease_family" type="checkbox" checked={!!form.heart_disease_family} onChange={handleChange} className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"/>
-                                <label htmlFor="heart_disease_family" className="ml-3 block text-sm font-medium text-gray-700">Heart Disease</label>
-                            </div>
-                           <div className="flex items-center">
-                                <input id="cancer_family" name="cancer_family" type="checkbox" checked={!!form.cancer_family} onChange={handleChange} className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"/>
-                                <label htmlFor="cancer_family" className="ml-3 block text-sm font-medium text-gray-700">Cancer</label>
-                            </div>
-                        </div>
-                    </div>
+          {/* Symptoms Section */}
+          <SectionCard 
+            icon={<AlertCircle className="h-6 w-6 text-white" />}
+            title="Symptoms & Well-being"
+            iconBg="from-orange-500 to-orange-600"
+          >
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                  Current Symptoms
+                </h3>
+                <div className="space-y-2">
+                  <CheckboxField
+                    label="Chest Pain"
+                    id="chest_pain"
+                    name="chest_pain"
+                    checked={!!form.chest_pain}
+                    onChange={handleChange}
+                  />
+                  <CheckboxField
+                    label="Breathlessness"
+                    id="breathlessness"
+                    name="breathlessness"
+                    checked={!!form.breathlessness}
+                    onChange={handleChange}
+                  />
+                  <CheckboxField
+                    label="Unusual Fatigue"
+                    id="fatigue"
+                    name="fatigue"
+                    checked={!!form.fatigue}
+                    onChange={handleChange}
+                  />
                 </div>
+              </div>
+              
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                  General Well-being
+                </h3>
+                <InputField
+                  label="Sleep Quality"
+                  id="sleep_quality"
+                  name="sleep_quality"
+                  placeholder="e.g., Good, Poor, 6 hours/night"
+                  value={form.sleep_quality}
+                  onChange={handleChange}
+                />
+                <InputField
+                  label="Stress Level"
+                  id="stress_level"
+                  name="stress_level"
+                  placeholder="e.g., Low, Moderate, High"
+                  value={form.stress_level}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+          </SectionCard>
 
-                {/* Additional Details */}
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                    <div>
-                      <label htmlFor="other_conditions" className="block text-sm font-medium text-gray-700 mb-1">Other Personal Conditions</label>
-                      <input type="text" id="other_conditions" name="other_conditions" value={form.other_conditions || ''} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"/>
-                    </div>
-                     <div>
-                      <label htmlFor="other_family" className="block text-sm font-medium text-gray-700 mb-1">Other Family Conditions</label>
-                      <input type="text" id="other_family" name="other_family" value={form.other_family || ''} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"/>
-                    </div>
-                    <div>
-                      <label htmlFor="medications" className="block text-sm font-medium text-gray-700 mb-1">Current Medications (comma-separated)</label>
-                      <input type="text" id="medications" name="medications" value={form.medications || ''} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"/>
-                    </div>
-                    <div>
-                      <label htmlFor="allergies" className="block text-sm font-medium text-gray-700 mb-1">Known Allergies (comma-separated)</label>
-                      <input type="text" id="allergies" name="allergies" value={form.allergies || ''} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"/>
-                    </div>
-                 </div>
-            </section>
-
-
-          {/* --- Symptoms Section --- */}
-            <section className="mb-10 p-6 border border-gray-200 rounded-lg">
-                <h2 className="text-2xl font-semibold text-gray-700 mb-6 border-b pb-3">Symptoms</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <h3 className="text-lg font-medium text-gray-800 mb-3">Check if you experience any of these:</h3>
-                        <div className="space-y-4">
-                            <div className="flex items-center">
-                                <input id="chest_pain" name="chest_pain" type="checkbox" checked={!!form.chest_pain} onChange={handleChange} className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"/>
-                                <label htmlFor="chest_pain" className="ml-3 block text-sm font-medium text-gray-700">Chest Pain</label>
-                            </div>
-                            <div className="flex items-center">
-                                <input id="breathlessness" name="breathlessness" type="checkbox" checked={!!form.breathlessness} onChange={handleChange} className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"/>
-                                <label htmlFor="breathlessness" className="ml-3 block text-sm font-medium text-gray-700">Breathlessness</label>
-                            </div>
-                            <div className="flex items-center">
-                                <input id="fatigue" name="fatigue" type="checkbox" checked={!!form.fatigue} onChange={handleChange} className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"/>
-                                <label htmlFor="fatigue" className="ml-3 block text-sm font-medium text-gray-700">Unusual Fatigue</label>
-                            </div>
-                        </div>
-                    </div>
-                     <div>
-                        <h3 className="text-lg font-medium text-gray-800 mb-3">General Wellbeing</h3>
-                        <div className="space-y-4">
-                            <div>
-                                <label htmlFor="sleep_quality" className="block text-sm font-medium text-gray-700 mb-1">Sleep Quality</label>
-                                <input type="text" id="sleep_quality" placeholder="e.g., Good, Poor, 6 hours/night" name="sleep_quality" value={form.sleep_quality || ''} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"/>
-                            </div>
-                             <div>
-                                <label htmlFor="stress_level" className="block text-sm font-medium text-gray-700 mb-1">Stress Level</label>
-                                <input type="text" id="stress_level" name="stress_level" placeholder="e.g., Low, Moderate, High" value={form.stress_level || ''} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"/>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-
-          {/* --- Measurements & Preventive Care Section --- */}
-            <section className="mb-10 p-6 border border-gray-200 rounded-lg">
-                <h2 className="text-2xl font-semibold text-gray-700 mb-6 border-b pb-3">Measurements & Preventive Care</h2>
+          {/* Measurements & Preventive Care Section */}
+          <SectionCard 
+            icon={<Scale className="h-6 w-6 text-white" />}
+            title="Measurements & Preventive Care"
+            iconBg="from-purple-500 to-purple-600"
+          >
+            <div className="space-y-8">
+              {/* Measurements */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-6 flex items-center gap-2">
+                  <Scale className="h-5 w-5 text-purple-500" />
+                  Physical Measurements
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                   <div>
-                        <label htmlFor="height_cm" className="block text-sm font-medium text-gray-700 mb-1">Height (cm)</label>
-                        <input type="number" id="height_cm" name="height_cm" value={form.height_cm || ''} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"/>
-                    </div>
-                    <div>
-                        <label htmlFor="weight_kg" className="block text-sm font-medium text-gray-700 mb-1">Weight (kg)</label>
-                        <input type="number" id="weight_kg" name="weight_kg" value={form.weight_kg || ''} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"/>
-                    </div>
-                     <div>
-                        <label htmlFor="bmi" className="block text-sm font-medium text-gray-700 mb-1">BMI (if known)</label>
-                        <input type="number" id="bmi" name="bmi" value={form.bmi || ''} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"/>
-                    </div>
-                    <div>
-                        <label htmlFor="blood_pressure" className="block text-sm font-medium text-gray-700 mb-1">Last Blood Pressure</label>
-                        <input type="text" id="blood_pressure" name="blood_pressure" placeholder="e.g., 120/80" value={form.blood_pressure || ''} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"/>
-                    </div>
-                     <div>
-                        <label htmlFor="blood_sugar" className="block text-sm font-medium text-gray-700 mb-1">Last Blood Sugar</label>
-                        <input type="text" id="blood_sugar" name="blood_sugar" placeholder="e.g., 5.5 mmol/L or 100 mg/dL" value={form.blood_sugar || ''} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"/>
-                    </div>
-                     <div>
-                        <label htmlFor="cholesterol" className="block text-sm font-medium text-gray-700 mb-1">Last Cholesterol</label>
-                        <input type="text" id="cholesterol" name="cholesterol" placeholder="e.g., 5.0 mmol/L or 190 mg/dL" value={form.cholesterol || ''} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"/>
-                    </div>
-                     <div className="md:col-span-1">
-                         <label htmlFor="last_checkup" className="block text-sm font-medium text-gray-700 mb-1">Date of Last Check-up</label>
-                        <input type="date" id="last_checkup" name="last_checkup" value={form.last_checkup || ''} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"/>
-                    </div>
-                     <div className="md:col-span-2">
-                        <label htmlFor="vaccinations" className="block text-sm font-medium text-gray-700 mb-1">Recent Vaccinations (e.g., Flu, COVID-19)</label>
-                        <input type="text" id="vaccinations" name="vaccinations" value={form.vaccinations || ''} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"/>
-                    </div>
+                  <InputField
+                    label="Height (cm)"
+                    id="height_cm"
+                    name="height_cm"
+                    type="number"
+                    placeholder="e.g., 170"
+                    value={form.height_cm}
+                    onChange={handleChange}
+                  />
+                  <InputField
+                    label="Weight (kg)"
+                    id="weight_kg"
+                    name="weight_kg"
+                    type="number"
+                    placeholder="e.g., 70"
+                    value={form.weight_kg}
+                    onChange={handleChange}
+                  />
+                  <InputField
+                    label="BMI (if known)"
+                    id="bmi"
+                    name="bmi"
+                    type="number"
+                    placeholder="e.g., 24.2"
+                    value={form.bmi}
+                    onChange={handleChange}
+                  />
                 </div>
-            </section>
+              </div>
 
-          {/* --- Submission Area --- */}
-          <div className="mt-8 text-right">
-            {error && <p className="text-red-600 text-sm mb-4 text-center">{error}</p>}
-            <button
-              type="submit"
-              disabled={loading}
-              className="inline-flex justify-center py-3 px-8 border border-transparent shadow-sm text-lg font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-            >
-              {loading ? 'Submitting...' : 'Submit Questionnaire'}
-            </button>
+              {/* Vital Signs */}
+              <div className="pt-6 border-t border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-800 mb-6 flex items-center gap-2">
+                  <Heart className="h-5 w-5 text-purple-500" />
+                  Recent Vital Signs
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <InputField
+                    label="Last Blood Pressure"
+                    id="blood_pressure"
+                    name="blood_pressure"
+                    placeholder="e.g., 120/80"
+                    value={form.blood_pressure}
+                    onChange={handleChange}
+                  />
+                  <InputField
+                    label="Last Blood Sugar"
+                    id="blood_sugar"
+                    name="blood_sugar"
+                    placeholder="e.g., 5.5 mmol/L or 100 mg/dL"
+                    value={form.blood_sugar}
+                    onChange={handleChange}
+                  />
+                  <InputField
+                    label="Last Cholesterol"
+                    id="cholesterol"
+                    name="cholesterol"
+                    placeholder="e.g., 5.0 mmol/L or 190 mg/dL"
+                    value={form.cholesterol}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+
+              {/* Preventive Care */}
+              <div className="pt-6 border-t border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-800 mb-6 flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-purple-500" />
+                  Preventive Care History
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <InputField
+                    label="Date of Last Check-up"
+                    id="last_checkup"
+                    name="last_checkup"
+                    type="date"
+                    value={form.last_checkup}
+                    onChange={handleChange}
+                  />
+                  <InputField
+                    label="Recent Vaccinations"
+                    id="vaccinations"
+                    name="vaccinations"
+                    placeholder="e.g., Flu (2023), COVID-19 (2023)"
+                    value={form.vaccinations}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+            </div>
+          </SectionCard>
+
+          {/* Error Display */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-2xl p-4">
+              <div className="flex items-center gap-3">
+                <AlertCircle className="h-6 w-6 text-red-500 flex-shrink-0" />
+                <div>
+                  <h3 className="font-semibold text-red-800">Submission Error</h3>
+                  <p className="text-sm text-red-600 mt-1">{error}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Submit Section */}
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+            <div className="text-center space-y-6">
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Ready to Submit?</h3>
+                <p className="text-gray-600">
+                  Review your information and submit your questionnaire to receive personalized health recommendations.
+                </p>
+              </div>
+              
+              <button
+                type="submit"
+                disabled={loading}
+                className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-[#4C7B4C] to-[#5a8a5a] text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#4C7B4C] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none transition-all duration-300"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <span>Submitting Your Information...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="h-5 w-5" />
+                    <span>Submit Health Questionnaire</span>
+                  </>
+                )}
+              </button>
+              
+              <p className="text-sm text-gray-500">
+                🔒 Your information is encrypted and secure
+              </p>
+            </div>
           </div>
         </form>
       </div>
     </div>
   );
 };
+
