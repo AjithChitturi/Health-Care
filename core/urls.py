@@ -1,10 +1,20 @@
+# backend/urls.py (Main project URLs)
+from django.contrib import admin
+from django.urls import path, include
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('api/', include('core.urls')),  # Make sure this line exists
+]
+
+# core/urls.py (Your app URLs - UPDATED)
 from rest_framework import routers
 from .views import (
     PersonalInfoViewSet, LifestyleViewSet, MedicalHistoryViewSet, FamilyHistoryViewSet,
     MeasurementsViewSet, SymptomsViewSet, PreventiveCareViewSet, HealthQuestionnaireViewSet,
     RegisterView, CustomTokenObtainPairView
 )
-from django.urls import path
+from django.urls import path, include
 
 router = routers.DefaultRouter()
 router.register(r'personal-info', PersonalInfoViewSet)
@@ -19,7 +29,5 @@ router.register(r'questionnaire', HealthQuestionnaireViewSet)
 urlpatterns = [
     path('auth/register/', RegisterView.as_view(), name='auth_register'),
     path('auth/login/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
-    #path('questionnaire/<int:pk>/download/', download_report_view, name='download_report'),
-
+    path('', include(router.urls)),  # Include router URLs
 ]
-urlpatterns += router.urls

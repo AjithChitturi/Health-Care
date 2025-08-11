@@ -1,16 +1,16 @@
 import axios from 'axios';
 
-// NOTE: I am assuming your Django URLs do NOT have a '/api' prefix
-// based on the urls.py you showed me earlier. If they DO, then keep
-// your original API_BASE. If not, this is the correct URL.
-const API_BASE = 'http://127.0.0.1:8000/';
+// FIXED: Added /api/ prefix based on your Django URL configuration
+const API_BASE = 'http://127.0.0.1:8000/api/';
 
 export const getToken = () => localStorage.getItem('token');
 
 // Create axios instance with interceptor
-// This is your configured client that knows the base URL and how to handle tokens.
 const apiClient = axios.create({
   baseURL: API_BASE,
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
 // Add token to all requests automatically
@@ -25,45 +25,56 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Handle auth errors - This is a great feature you built! It will be kept.
+// Handle auth errors and other response errors
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
-      window.location.href = '/login'; // Redirect to login
+      window.location.href = '/login';
     }
     return Promise.reject(error);
   }
 );
 
-
 // Your complete API object
 export const api = {
   // --- AUTHENTICATION ---
-  // IMPROVED: Switched to use `apiClient` for consistency and to enable 401 error handling.
-  login: (data: { username: string; password: string }) =>
-    apiClient.post('auth/login/', data),
+  login: async (data: { username: string; password: string }) => {
+    try {
+      const response = await apiClient.post('auth/login/', data);
+      return response;
+    } catch (error: any) {
+      console.error('Login error:', error.response?.data || error.message);
+      throw error;
+    }
+  },
 
-  register: (data: { username: string; email: string; password: string; password2: string }) =>
-    apiClient.post('auth/register/', data),
-
+  register: async (data: { username: string; email: string; password: string; password2: string }) => {
+    try {
+      const response = await apiClient.post('auth/register/', data);
+      return response;
+    } catch (error: any) {
+      console.error('Register error:', error.response?.data || error.message);
+      throw error;
+    }
+  },
 
   // --- QUESTIONNAIRE SUBMISSION ---
   submitCompleteQuestionnaire: (data: any) =>
     apiClient.post('questionnaire/submit_complete/', data),
 
-
   // --- DATA FETCHING FOR DASHBOARDS ---
-  // This one already existed and is correct for UserDashboard
   getQuestionnaire: () => apiClient.get('questionnaire/'),
-
-  // THIS IS THE NEW FUNCTION THAT FIXES YOUR ERROR
+  
   // For AdminDashboard to get submissions needing review
   getPendingReviews: () => apiClient.get('questionnaire/pending/'),
+  
+  // Add review submission method for admin
+  submitReview: (id: number, data: { admin_feedback: string; status: string }) =>
+    apiClient.post(`questionnaire/${id}/review/`, data),
 
-
-  // --- INDIVIDUAL GET/SAVE (for future use - no changes needed) ---
+  // --- INDIVIDUAL GET/SAVE METHODS ---
   getPersonalInfo: () => apiClient.get('personal-info/'),
   savePersonalInfo: (data: any) => apiClient.post('personal-info/', data),
 
@@ -85,6 +96,6 @@ export const api = {
   getPreventiveCare: () => apiClient.get('preventive-care/'),
   savePreventiveCare: (data: any) => apiClient.post('preventive-care/', data),
 
-  // Redundant but keeping it for now
+  // General questionnaire submission (keeping for compatibility)
   submitQuestionnaire: (data: any) => apiClient.post('questionnaire/', data),
 };
