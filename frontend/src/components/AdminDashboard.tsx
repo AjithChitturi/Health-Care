@@ -1,10 +1,9 @@
 // components/AdminDashboard.tsx
 
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api'; 
 import { 
-  Settings, 
   Users, 
   FileText, 
   Clock, 
@@ -15,7 +14,11 @@ import {
   TrendingUp,
   Loader2,
   Search,
-  Filter
+  Filter,
+  RefreshCw,
+  Activity,
+  Shield,
+  UserCheck
 } from 'lucide-react';
 
 interface QuestionnaireSummary {
@@ -36,15 +39,27 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
         };
       case 'reviewed':
         return { 
-          color: 'bg-green-100 text-green-800 border-green-200',
+          color: 'bg-blue-100 text-blue-800 border-blue-200',
           icon: CheckCircle,
           text: 'Reviewed'
         };
       case 'approved':
         return { 
-          color: 'bg-blue-100 text-blue-800 border-blue-200',
+          color: 'bg-green-100 text-green-800 border-green-200',
           icon: CheckCircle,
           text: 'Approved'
+        };
+      case 'rejected':
+        return { 
+          color: 'bg-red-100 text-red-800 border-red-200',
+          icon: AlertTriangle,
+          text: 'Rejected'
+        };
+      case 'needs_info':
+        return { 
+          color: 'bg-orange-100 text-orange-800 border-orange-200',
+          icon: AlertTriangle,
+          text: 'Needs More Info'
         };
       default:
         return { 
@@ -72,8 +87,12 @@ const StatCard: React.FC<{
   value: string | number;
   subtitle: string;
   gradient: string;
-}> = ({ icon, title, value, subtitle, gradient }) => (
-  <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+  onClick?: () => void;
+}> = ({ icon, title, value, subtitle, gradient, onClick }) => (
+  <div 
+    className={`bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${onClick ? 'cursor-pointer' : ''}`}
+    onClick={onClick}
+  >
     <div className={`bg-gradient-to-r ${gradient} p-6`}>
       <div className="flex items-center justify-between text-white">
         <div>
@@ -90,44 +109,55 @@ const StatCard: React.FC<{
 );
 
 export const AdminDashboard: React.FC = () => {
-    const [pending, setPending] = useState<QuestionnaireSummary[]>([]);
+    const navigate = useNavigate();
+    const [allSubmissions, setAllSubmissions] = useState<QuestionnaireSummary[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
+    const [refreshing, setRefreshing] = useState(false);
+
+    const fetchSubmissions = async (showRefreshLoader = false) => {
+        try {
+            if (showRefreshLoader) setRefreshing(true);
+            else setLoading(true);
+            
+            const res = await api.getAllReviews();
+            const summaryData = res.data.map((q: any) => ({
+                id: q.id,
+                user: { username: q.personal_info.contact || `User ${q.id}` }, 
+                status: q.status,
+                submitted_at: q.submitted_at
+            }));
+            setAllSubmissions(summaryData);
+        } catch (err) {
+            setError('Failed to fetch submissions. You may not have admin privileges.');
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchPending = async () => {
-            try {
-                const res = await api.getPendingReviews();
-                const summaryData = res.data.map((q: any) => ({
-                    id: q.id,
-                    user: { username: q.personal_info.contact || `User ${q.id}` }, 
-                    status: q.status,
-                    submitted_at: q.submitted_at
-                }));
-                setPending(summaryData);
-            } catch (err) {
-                setError('Failed to fetch pending reviews. You may not have admin privileges.');
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchPending();
+        fetchSubmissions();
     }, []);
 
-    const filteredSubmissions = pending.filter(submission => {
+    const handleRefresh = () => {
+        fetchSubmissions(true);
+    };
+
+    const filteredSubmissions = allSubmissions.filter(submission => {
         const matchesSearch = submission.user.username.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesStatus = statusFilter === 'all' || submission.status.toLowerCase() === statusFilter.toLowerCase();
         return matchesSearch && matchesStatus;
     });
 
     const stats = {
-        total: pending.length,
-        pending: pending.filter(q => q.status.toLowerCase() === 'pending').length,
-        reviewed: pending.filter(q => q.status.toLowerCase() === 'reviewed').length,
-        recent: pending.filter(q => {
+        total: allSubmissions.length,
+        pending: allSubmissions.filter(q => q.status.toLowerCase() === 'pending').length,
+        reviewed: allSubmissions.filter(q => q.status.toLowerCase() === 'reviewed').length,
+        approved: allSubmissions.filter(q => q.status.toLowerCase() === 'approved').length,
+        recent: allSubmissions.filter(q => {
             const submittedDate = new Date(q.submitted_at);
             const yesterday = new Date();
             yesterday.setDate(yesterday.getDate() - 1);
@@ -139,7 +169,7 @@ export const AdminDashboard: React.FC = () => {
         return (
             <div className="min-h-screen bg-[#F5F9F5] flex items-center justify-center">
                 <div className="text-center">
-                    <Loader2 className="h-12 w-12 text-[#4C7B4C] animate-spin mx-auto mb-4" />
+                    <Loader2 className="h-12 w-12 text-blue-600 animate-spin mx-auto mb-4" />
                     <p className="text-lg text-gray-600">Loading admin dashboard...</p>
                 </div>
             </div>
@@ -152,7 +182,13 @@ export const AdminDashboard: React.FC = () => {
                 <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-8 text-center border border-red-200">
                     <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
                     <h2 className="text-xl font-bold text-gray-900 mb-2">Access Denied</h2>
-                    <p className="text-red-600">{error}</p>
+                    <p className="text-red-600 mb-4">{error}</p>
+                    <button
+                        onClick={() => navigate('/')}
+                        className="text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                        Return to Home
+                    </button>
                 </div>
             </div>
         );
@@ -161,23 +197,73 @@ export const AdminDashboard: React.FC = () => {
     return (
         <div className="min-h-screen bg-[#F5F9F5] py-8 px-4">
             <div className="max-w-7xl mx-auto space-y-8">
+                
                 {/* Header */}
                 <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                    <div className="bg-gradient-to-r from-[#4C7B4C] to-[#5a8a5a] p-8 text-white">
-                        <div className="flex items-center gap-4 mb-4">
-                            <div className="bg-white/20 rounded-2xl p-3">
-                                <Settings className="h-8 w-8 text-white" />
+                    <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-8 text-white">
+                        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                            <div className="flex items-center gap-4">
+                                <div className="bg-white/20 rounded-2xl p-3">
+                                    <Shield className="h-8 w-8 text-white" />
+                                </div>
+                                <div>
+                                    <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+                                    <p className="text-white/90">Manage health questionnaire submissions</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={handleRefresh}
+                                disabled={refreshing}
+                                className="flex items-center gap-2 bg-white/20 text-white px-4 py-2 rounded-xl font-medium hover:bg-white/30 transition-colors duration-300 disabled:opacity-50"
+                            >
+                                <RefreshCw className={`h-5 w-5 ${refreshing ? 'animate-spin' : ''}`} />
+                                {refreshing ? 'Refreshing...' : 'Refresh'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Quick Navigation Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 rounded-xl bg-gradient-to-br from-yellow-500 to-yellow-600 shadow-lg">
+                                <Clock className="h-6 w-6 text-white" />
                             </div>
                             <div>
-                                <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-                                <p className="text-white/90">Manage health questionnaire submissions</p>
+                                <h3 className="text-lg font-bold text-gray-800">Pending Reviews</h3>
+                                <p className="text-gray-600">Submissions awaiting review</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 rounded-xl bg-gradient-to-br from-green-500 to-green-600 shadow-lg">
+                                <UserCheck className="h-6 w-6 text-white" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-gray-800">Patient Management</h3>
+                                <p className="text-gray-600">Review and approve submissions</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg">
+                                <Activity className="h-6 w-6 text-white" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-gray-800">Health Analytics</h3>
+                                <p className="text-gray-600">Track submission patterns</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Statistics Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
                     <StatCard
                         icon={<FileText className="h-6 w-6" />}
                         title="Total Submissions"
@@ -191,13 +277,23 @@ export const AdminDashboard: React.FC = () => {
                         value={stats.pending}
                         subtitle="Awaiting review"
                         gradient="from-yellow-500 to-yellow-600"
+                        onClick={() => setStatusFilter('pending')}
                     />
                     <StatCard
                         icon={<CheckCircle className="h-6 w-6" />}
                         title="Reviewed"
                         value={stats.reviewed}
+                        subtitle="Under review"
+                        gradient="from-blue-500 to-blue-600"
+                        onClick={() => setStatusFilter('reviewed')}
+                    />
+                    <StatCard
+                        icon={<UserCheck className="h-6 w-6" />}
+                        title="Approved"
+                        value={stats.approved}
                         subtitle="Completed"
                         gradient="from-green-500 to-green-600"
+                        onClick={() => setStatusFilter('approved')}
                     />
                     <StatCard
                         icon={<TrendingUp className="h-6 w-6" />}
@@ -208,15 +304,15 @@ export const AdminDashboard: React.FC = () => {
                     />
                 </div>
 
-                {/* Main Content */}
+                {/* Main Submissions Table */}
                 <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
                     <div className="p-6 border-b border-gray-100 bg-[#F5F9F5]">
                         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                             <div className="flex items-center gap-3">
-                                <div className="p-2.5 rounded-xl bg-gradient-to-br from-[#4C7B4C] to-[#5a8a5a] shadow-lg">
+                                <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 shadow-lg">
                                     <Users className="h-6 w-6 text-white" />
                                 </div>
-                                <h2 className="text-2xl font-bold text-gray-800">Pending Reviews</h2>
+                                <h2 className="text-2xl font-bold text-gray-800">All Submissions</h2>
                             </div>
                             
                             {/* Search and Filter */}
@@ -228,7 +324,7 @@ export const AdminDashboard: React.FC = () => {
                                         placeholder="Search by user..."
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4C7B4C] focus:border-transparent w-full sm:w-64"
+                                        className="pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent w-full sm:w-64"
                                     />
                                 </div>
                                 <div className="relative">
@@ -236,12 +332,14 @@ export const AdminDashboard: React.FC = () => {
                                     <select
                                         value={statusFilter}
                                         onChange={(e) => setStatusFilter(e.target.value)}
-                                        className="pl-10 pr-8 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4C7B4C] focus:border-transparent appearance-none bg-white"
+                                        className="pl-10 pr-8 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent appearance-none bg-white"
                                     >
                                         <option value="all">All Status</option>
                                         <option value="pending">Pending</option>
                                         <option value="reviewed">Reviewed</option>
                                         <option value="approved">Approved</option>
+                                        <option value="rejected">Rejected</option>
+                                        <option value="needs_info">Needs More Info</option>
                                     </select>
                                 </div>
                             </div>
@@ -264,7 +362,7 @@ export const AdminDashboard: React.FC = () => {
                                         <tr key={q.id} className="hover:bg-gray-50 transition-colors duration-200">
                                             <td className="py-4 px-6">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 bg-gradient-to-br from-[#4C7B4C] to-[#5a8a5a] rounded-full flex items-center justify-center">
+                                                    <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center">
                                                         <Users className="h-5 w-5 text-white" />
                                                     </div>
                                                     <div>
@@ -290,7 +388,7 @@ export const AdminDashboard: React.FC = () => {
                                             <td className="py-4 px-6">
                                                 <Link
                                                     to={`/admin/review/${q.id}`}
-                                                    className="inline-flex items-center gap-2 bg-[#4C7B4C] text-white px-4 py-2 rounded-xl font-medium hover:bg-[#5a8a5a] transition-colors duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                                                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl font-medium hover:bg-blue-700 transition-colors duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                                                 >
                                                     <Eye className="h-4 w-4" />
                                                     Review
@@ -309,7 +407,7 @@ export const AdminDashboard: React.FC = () => {
                                 <p className="text-gray-600">
                                     {searchTerm || statusFilter !== 'all' 
                                         ? 'No submissions match your current filters.' 
-                                        : 'No submissions are currently pending review.'
+                                        : 'No submissions are available for review.'
                                     }
                                 </p>
                                 {(searchTerm || statusFilter !== 'all') && (
@@ -318,7 +416,7 @@ export const AdminDashboard: React.FC = () => {
                                             setSearchTerm('');
                                             setStatusFilter('all');
                                         }}
-                                        className="mt-4 text-[#4C7B4C] hover:text-[#5a8a5a] font-medium"
+                                        className="mt-4 text-blue-600 hover:text-blue-700 font-medium"
                                     >
                                         Clear filters
                                     </button>

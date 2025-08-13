@@ -56,6 +56,14 @@ class PreventiveCare(models.Model):
     vaccinations = models.TextField(blank=True)
 
 class HealthQuestionnaire(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending Review'),
+        ('reviewed', 'Reviewed'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+        ('needs_info', 'Needs More Information')
+    ]
+    
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     personal_info = models.OneToOneField(PersonalInfo, on_delete=models.CASCADE)
     lifestyle = models.OneToOneField(Lifestyle, on_delete=models.CASCADE)
@@ -65,8 +73,17 @@ class HealthQuestionnaire(models.Model):
     symptoms = models.OneToOneField(Symptoms, on_delete=models.CASCADE)
     preventive_care = models.OneToOneField(PreventiveCare, on_delete=models.CASCADE)
     submitted_at = models.DateTimeField(auto_now_add=True)
-    status = models.CharField(max_length=20, choices=[('pending','Pending Review'),('approved','Approved')], default='pending')
-    admin_feedback = models.TextField(blank=True)
+    updated_at = models.DateTimeField(auto_now=True)  # Track when admin last updated
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    admin_feedback = models.TextField(blank=True, help_text="Doctor's review and suggestions")
+    reviewed_by = models.CharField(max_length=150, blank=True, help_text="Admin username who reviewed")
+    reviewed_at = models.DateTimeField(blank=True, null=True, help_text="When admin reviewed")
+    
+    def __str__(self):
+        return f"Health Report - {self.user.username} ({self.status})"
+
+    class Meta:
+        ordering = ['-submitted_at']
 
 
 class Recommendation(models.Model):

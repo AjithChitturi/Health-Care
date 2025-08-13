@@ -15,6 +15,14 @@ from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string 
 from django.http import HttpResponse
 
+# HARDCODED ADMIN CREDENTIALS
+ADMIN_USERNAME = "healthadmin"  # Change this to your desired admin username
+ADMIN_EMAIL = "admin@healthplatform.com"  # Change this to your desired admin email
+
+def is_admin_user(user):
+    """Check if user is the designated admin"""
+    return user.username == ADMIN_USERNAME or user.email == ADMIN_EMAIL
+
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = (AllowAny,)
@@ -33,6 +41,11 @@ from .serializers import (
     MeasurementsSerializer, SymptomsSerializer, PreventiveCareSerializer, HealthQuestionnaireSerializer,
     CompleteQuestionnaireSerializer
 )
+
+# Custom permission class for admin
+class IsHealthAdmin(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and is_admin_user(request.user)
 
 class PersonalInfoViewSet(viewsets.ModelViewSet):
     queryset = PersonalInfo.objects.all()
@@ -76,48 +89,73 @@ class HealthQuestionnaireViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-       
         user = self.request.user
-        if user.is_staff: # Use is_staff for admin check
+        if is_admin_user(user):  # Use custom admin check
             return HealthQuestionnaire.objects.all()
         return HealthQuestionnaire.objects.filter(user=user)
         
 
-    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
+    @action(detail=True, methods=['post'], permission_classes=[IsHealthAdmin])
     def review(self, request, pk=None):
+        """Admin endpoint to review and provide feedback on questionnaires"""
         questionnaire = self.get_object()
         feedback = request.data.get('admin_feedback', '')
-        status_val = request.data.get('status', 'approved') 
+        status_val = request.data.get('status', 'reviewed') 
 
+        # Update questionnaire with admin feedback
         questionnaire.admin_feedback = feedback
         questionnaire.status = status_val
         questionnaire.save()
 
-        # --- EMAIL NOTIFICATION LOGIC ---
+        # EMAIL NOTIFICATION LOGIC
         if questionnaire.user.email:
-            send_mail(
-                'Your Health Report has been Reviewed',
-                f'Hello {questionnaire.user.username},\n\nA doctor has reviewed your health submission and added feedback. Please log in to your dashboard to view the details.\n\nFeedback provided: "{feedback}"\n\nThank you,\nThe Proactive Health Platform',
-                'no-reply@healthplatform.com', # From email
-                [questionnaire.user.email], # To email
-                fail_silently=False,
-            )
+            try:
+                send_mail(
+                    'Your Health Report has been Reviewed',
+                    f'Hello {questionnaire.user.username},\n\nA doctor has reviewed your health submission and added feedback. Please log in to your dashboard to view the details.\n\nFeedback provided: "{feedback}"\n\nThank you,\nThe Proactive Health Platform',
+                    'no-reply@healthplatform.com',
+                    [questionnaire.user.email],
+                    fail_silently=False,
+                )
+            except Exception as e:
+                print(f"Failed to send email: {e}")
             
-        return Response({'status': 'updated', 'admin_feedback': feedback})
+        return Response({
+            'status': 'updated', 
+            'admin_feedback': feedback,
+            'questionnaire_status': status_val,
+            'message': 'Feedback saved successfully'
+        })
 
-    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAdminUser])
+    @action(detail=False, methods=['get'], permission_classes=[IsHealthAdmin])
     def pending(self, request):
-        pending_qs = HealthQuestionnaire.objects.filter(status='pending')
-        # Use a simpler serializer for the list view if desired, or the full one
+        """Get all pending questionnaires for admin review"""
+        pending_qs = HealthQuestionnaire.objects.filter(status='pending').order_by('-submitted_at')
         serializer = self.get_serializer(pending_qs, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], permission_classes=[IsHealthAdmin])
+    def all_reviews(self, request):
+        """Get all questionnaires (for admin dashboard)"""
+        all_qs = HealthQuestionnaire.objects.all().order_by('-submitted_at')
+        serializer = self.get_serializer(all_qs, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'], permission_classes=[IsHealthAdmin])
+    def admin_detail(self, request, pk=None):
+        """Get detailed questionnaire data for admin review"""
+        questionnaire = self.get_object()
+        serializer = self.get_serializer(questionnaire)
         return Response(serializer.data)
 
     @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def submit_complete(self, request):
+        """Submit complete questionnaire by user"""
         serializer = CompleteQuestionnaireSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             questionnaire = serializer.save()
             
+            # Generate automated recommendations
             generate_recommendations(questionnaire)
             
             return Response({
@@ -128,10 +166,11 @@ class HealthQuestionnaireViewSet(viewsets.ModelViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 def download_report_view(request, pk):
-    
+    """Download questionnaire report"""
     questionnaire = get_object_or_404(HealthQuestionnaire, pk=pk)
     
-    if not (request.user.is_staff or request.user == questionnaire.user):
+    # Check permissions: admin or questionnaire owner
+    if not (is_admin_user(request.user) or request.user == questionnaire.user):
         return HttpResponse("Unauthorized", status=403)
         
     html_string = render_to_string('reports/report_template.html', {'q': questionnaire})
