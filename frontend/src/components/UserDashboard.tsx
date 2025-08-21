@@ -1,5 +1,3 @@
-// src/components/UserDashboard.tsx
-
 import React, { useEffect, useState } from 'react';
 import { api } from '../api';
 import { 
@@ -11,7 +9,6 @@ import {
   User, 
   Heart,
   Activity,
-  Stethoscope,
   Users,
   Scale,
   Calendar,
@@ -164,7 +161,7 @@ const CollapsibleSection: React.FC<{
 
 // --- Main Dashboard Component ---
 export const UserDashboard: React.FC = () => {
-  const [questionnaire, setQuestionnaire] = useState<FullQuestionnaire | null>(null);
+  const [questionnaires, setQuestionnaires] = useState<FullQuestionnaire[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -173,8 +170,8 @@ export const UserDashboard: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await api.getQuestionnaire(); 
-        setQuestionnaire(res.data[0] || null); 
+        const res = await api.getQuestionnaire();
+        setQuestionnaires(res.data || []);
       } catch (err) {
         setError('Failed to load your questionnaire data. Please try again later.');
         console.error(err);
@@ -190,7 +187,7 @@ export const UserDashboard: React.FC = () => {
       <div className="min-h-screen bg-[#F5F9F5] flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-12 w-12 text-[#4C7B4C] animate-spin mx-auto mb-4" />
-          <p className="text-lg text-gray-600">Loading your health report...</p>
+          <p className="text-lg text-gray-600">Loading your health reports...</p>
         </div>
       </div>
     );
@@ -208,14 +205,14 @@ export const UserDashboard: React.FC = () => {
     );
   }
 
-  if (!questionnaire) {
+  if (questionnaires.length === 0) {
     return (
       <div className="min-h-screen bg-[#F5F9F5] py-12 px-4">
         <div className="max-w-4xl mx-auto">
           <div className="text-center">
             <FileText className="h-24 w-24 text-gray-400 mx-auto mb-6" />
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">No Questionnaire Found</h1>
-            <p className="text-xl text-gray-600 mb-8">It looks like you haven't submitted a health questionnaire yet. Please complete the questionnaire to view your personalized health report.</p>
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">No Questionnaires Found</h1>
+            <p className="text-xl text-gray-600 mb-8">It looks like you haven't submitted any health questionnaires yet. Please complete a questionnaire to view your personalized health reports.</p>
             <a
               href="/questionnaire"
               className="inline-flex items-center gap-2 bg-[#4C7B4C] text-white px-6 py-3 rounded-xl font-semibold hover:bg-[#5a8a5a] transition-colors duration-300"
@@ -238,174 +235,192 @@ export const UserDashboard: React.FC = () => {
             <div className="p-3 bg-gradient-to-br from-[#4C7B4C] to-[#5a8a5a] rounded-2xl shadow-lg">
               <FileText className="h-8 w-8 text-white" />
             </div>
-            <h1 className="text-4xl font-bold text-gray-900">Your Health Report</h1>
+            <h1 className="text-4xl font-bold text-gray-900">Your Health Reports</h1>
           </div>
-          <div className="flex items-center justify-center gap-4">
-            <p className="text-lg text-gray-600">Status:</p>
-            <StatusBadge status={questionnaire.status} />
-          </div>
-          {questionnaire.admin_feedback && (
-            <div className="mt-4 max-w-2xl mx-auto bg-white p-4 rounded-xl shadow-lg">
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">Doctor's Feedback</h3>
-              <p className="text-gray-600">{questionnaire.admin_feedback}</p>
-            </div>
-          )}
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+            View all your submitted health questionnaires and their personalized recommendations below.
+          </p>
         </div>
 
-        {/* Main Content */}
-        <InfoCard
-          icon={<Stethoscope className="h-6 w-6 text-white" />}
-          title="Health Profile Summary"
-        >
-          <div className="space-y-6">
-            <CollapsibleSection
-              title="Personal Information"
-              icon={<User className="h-5 w-5 text-gray-600" />}
-            >
-              <div className="space-y-1">
-                <InfoField label="Age" value={questionnaire.personal_info.age} />
-                <InfoField label="Gender" value={questionnaire.personal_info.gender} />
-                <InfoField label="Contact" value={questionnaire.personal_info.contact} />
+        {/* Questionnaires List */}
+        {questionnaires.map((questionnaire, _) => (
+          <InfoCard
+            key={questionnaire.id}
+            icon={<FileText className="h-6 w-6 text-white" />}
+            title={`Health Report #${questionnaire.id} - Submitted ${new Date(questionnaire.submitted_at).toLocaleString()}`}
+          >
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <p className="text-lg text-gray-600">Status:</p>
+                <StatusBadge status={questionnaire.status} />
               </div>
-            </CollapsibleSection>
-
-            <CollapsibleSection
-              title="Lifestyle"
-              icon={<Activity className="h-5 w-5 text-gray-600" />}
-            >
-              <div className="space-y-1">
-                <InfoField label="Smoking Status" value={questionnaire.lifestyle.smoking_status} />
-                <InfoField label="Alcohol Consumption" value={questionnaire.lifestyle.alcohol_consumption} />
-                <InfoField label="Physical Activity" value={questionnaire.lifestyle.physical_activity} />
-                <InfoField label="Diet" value={questionnaire.lifestyle.diet} />
-              </div>
-            </CollapsibleSection>
-
-            <CollapsibleSection
-              title="Medical History"
-              icon={<Heart className="h-5 w-5 text-gray-600" />}
-            >
-              <div className="space-y-1">
-                <InfoField label="Diabetes" value={questionnaire.medical_history.diabetes} />
-                <InfoField label="Hypertension" value={questionnaire.medical_history.hypertension} />
-                <InfoField label="Heart Disease" value={questionnaire.medical_history.heart_disease} />
-                <InfoField label="Other Conditions" value={questionnaire.medical_history.other_conditions} />
-                <InfoField label="Current Medications" value={questionnaire.medical_history.medications} />
-                <InfoField label="Allergies" value={questionnaire.medical_history.allergies} />
-              </div>
-            </CollapsibleSection>
-
-            <CollapsibleSection
-              title="Family History"
-              icon={<Users className="h-5 w-5 text-gray-600" />}
-            >
-              <div className="space-y-1">
-                <InfoField label="Family Diabetes" value={questionnaire.family_history.diabetes} />
-                <InfoField label="Family Heart Disease" value={questionnaire.family_history.heart_disease} />
-                <InfoField label="Family Cancer" value={questionnaire.family_history.cancer} />
-                <InfoField label="Other Family Conditions" value={questionnaire.family_history.other} />
-              </div>
-            </CollapsibleSection>
-
-            <CollapsibleSection
-              title="Measurements & Vitals"
-              icon={<Scale className="h-5 w-5 text-gray-600" />}
-            >
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <h5 className="font-semibold text-gray-700 mb-3">Physical Measurements</h5>
-                  <div className="space-y-1">
-                    <InfoField label="Height (cm)" value={questionnaire.measurements.height_cm} />
-                    <InfoField label="Weight (kg)" value={questionnaire.measurements.weight_kg} />
-                    <InfoField label="BMI" value={questionnaire.measurements.bmi} />
-                  </div>
+              {questionnaire.admin_feedback && (
+                <div className="bg-white p-4 rounded-xl shadow-inner">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-2">Doctor's Feedback</h3>
+                  <p className="text-gray-600">{questionnaire.admin_feedback}</p>
                 </div>
-                <div>
-                  <h5 className="font-semibold text-gray-700 mb-3">Vital Signs</h5>
-                  <div className="space-y-1">
-                    <InfoField label="Blood Pressure" value={questionnaire.measurements.blood_pressure} />
-                    <InfoField label="Blood Sugar" value={questionnaire.measurements.blood_sugar} />
-                    <InfoField label="Cholesterol" value={questionnaire.measurements.cholesterol} />
-                  </div>
-                </div>
-              </div>
-            </CollapsibleSection>
+              )}
 
-            <CollapsibleSection
-              title="Symptoms & Well-being"
-              icon={<AlertTriangle className="h-5 w-5 text-gray-600" />}
-            >
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <h5 className="font-semibold text-gray-700 mb-3">Symptoms</h5>
-                  <div className="space-y-1">
-                    <InfoField label="Chest Pain" value={questionnaire.symptoms.chest_pain} />
-                    <InfoField label="Breathlessness" value={questionnaire.symptoms.breathlessness} />
-                    <InfoField label="Fatigue" value={questionnaire.symptoms.fatigue} />
-                  </div>
+              <CollapsibleSection
+                title="Personal Information"
+                icon={<User className="h-5 w-5 text-gray-600" />}
+              >
+                <div className="space-y-1">
+                  <InfoField label="Age" value={questionnaire.personal_info.age} />
+                  <InfoField label="Gender" value={questionnaire.personal_info.gender} />
+                  <InfoField label="Contact" value={questionnaire.personal_info.contact} />
                 </div>
-                <div>
-                  <h5 className="font-semibold text-gray-700 mb-3">General Well-being</h5>
-                  <div className="space-y-1">
-                    <InfoField label="Sleep Quality" value={questionnaire.symptoms.sleep_quality} />
-                    <InfoField label="Stress Level" value={questionnaire.symptoms.stress_level} />
-                  </div>
+              </CollapsibleSection>
+
+              <CollapsibleSection
+                title="Lifestyle"
+                icon={<Activity className="h-5 w-5 text-gray-600" />}
+              >
+                <div className="space-y-1">
+                  <InfoField label="Smoking Status" value={questionnaire.lifestyle.smoking_status} />
+                  <InfoField label="Alcohol Consumption" value={questionnaire.lifestyle.alcohol_consumption} />
+                  <InfoField label="Physical Activity" value={questionnaire.lifestyle.physical_activity} />
+                  <InfoField label="Diet" value={questionnaire.lifestyle.diet} />
                 </div>
-              </div>
-            </CollapsibleSection>
+              </CollapsibleSection>
 
-            <CollapsibleSection
-              title="Preventive Care"
-              icon={<Calendar className="h-5 w-5 text-gray-600" />}
-            >
-              <div className="space-y-1">
-                <InfoField label="Last Check-up" value={questionnaire.preventive_care.last_checkup} />
-                <InfoField label="Recent Vaccinations" value={questionnaire.preventive_care.vaccinations} />
-              </div>
-            </CollapsibleSection>
+              <CollapsibleSection
+                title="Medical History"
+                icon={<Heart className="h-5 w-5 text-gray-600" />}
+              >
+                <div className="space-y-1">
+                  <InfoField label="Diabetes" value={questionnaire.medical_history.diabetes} />
+                  <InfoField label="Hypertension" value={questionnaire.medical_history.hypertension} />
+                  <InfoField label="Heart Disease" value={questionnaire.medical_history.heart_disease} />
+                  <InfoField label="Other Conditions" value={questionnaire.medical_history.other_conditions} />
+                  <InfoField label="Current Medications" value={questionnaire.medical_history.medications} />
+                  <InfoField label="Allergies" value={questionnaire.medical_history.allergies} />
+                </div>
+              </CollapsibleSection>
 
-            {/* New Section for Recommendations and Suggestions */}
-            <CollapsibleSection
-              title="Health Recommendations & Suggestions"
-              icon={<Star className="h-5 w-5 text-gray-600" />}
-              defaultOpen={true}
-            >
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <h5 className="font-semibold text-gray-700 mb-3">Recommended Tests</h5>
-                  {questionnaire.recommendations.length > 0 ? (
-                    <div className="space-y-4">
-                      {questionnaire.recommendations.map((rec, index) => (
-                        <div key={index} className="border-b border-gray-100 pb-3 last:border-b-0">
-                          <p className="font-medium text-gray-900">{rec.test_name}</p>
-                          <p className="text-sm text-gray-600">{rec.reason}</p>
-                          <p className="text-xs text-gray-500">Category: {rec.category}</p>
-                        </div>
-                      ))}
+              <CollapsibleSection
+                title="Family History"
+                icon={<Users className="h-5 w-5 text-gray-600" />}
+              >
+                <div className="space-y-1">
+                  <InfoField label="Family Diabetes" value={questionnaire.family_history.diabetes} />
+                  <InfoField label="Family Heart Disease" value={questionnaire.family_history.heart_disease} />
+                  <InfoField label="Family Cancer" value={questionnaire.family_history.cancer} />
+                  <InfoField label="Other Family Conditions" value={questionnaire.family_history.other} />
+                </div>
+              </CollapsibleSection>
+
+              <CollapsibleSection
+                title="Measurements & Vitals"
+                icon={<Scale className="h-5 w-5 text-gray-600" />}
+              >
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <h5 className="font-semibold text-gray-700 mb-3">Physical Measurements</h5>
+                    <div className="space-y-1">
+                      <InfoField label="Height (cm)" value={questionnaire.measurements.height_cm} />
+                      <InfoField label="Weight (kg)" value={questionnaire.measurements.weight_kg} />
+                      <InfoField label="BMI" value={questionnaire.measurements.bmi} />
                     </div>
-                  ) : (
-                    <p className="text-gray-600">No specific test recommendations at this time.</p>
-                  )}
-                </div>
-                <div>
-                  <h5 className="font-semibold text-gray-700 mb-3">Health Suggestions</h5>
-                  {questionnaire.suggestions.length > 0 ? (
-                    <div className="space-y-4">
-                      {questionnaire.suggestions.map((sug, index) => (
-                        <div key={index} className="border-b border-gray-100 pb-3 last:border-b-0">
-                          <p className="font-medium text-gray-900">{sug.suggestion_text}</p>
-                          <p className="text-xs text-gray-500">Category: {sug.category}</p>
-                        </div>
-                      ))}
+                  </div>
+                  <div>
+                    <h5 className="font-semibold text-gray-700 mb-3">Vital Signs</h5>
+                    <div className="space-y-1">
+                      <InfoField label="Blood Pressure" value={questionnaire.measurements.blood_pressure} />
+                      <InfoField label="Blood Sugar" value={questionnaire.measurements.blood_sugar} />
+                      <InfoField label="Cholesterol" value={questionnaire.measurements.cholesterol} />
                     </div>
-                  ) : (
-                    <p className="text-gray-600">No specific suggestions at this time.</p>
-                  )}
+                  </div>
                 </div>
+              </CollapsibleSection>
+
+              <CollapsibleSection
+                title="Symptoms & Well-being"
+                icon={<AlertTriangle className="h-5 w-5 text-gray-600" />}
+              >
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <h5 className="font-semibold text-gray-700 mb-3">Symptoms</h5>
+                    <div className="space-y-1">
+                      <InfoField label="Chest Pain" value={questionnaire.symptoms.chest_pain} />
+                      <InfoField label="Breathlessness" value={questionnaire.symptoms.breathlessness} />
+                      <InfoField label="Fatigue" value={questionnaire.symptoms.fatigue} />
+                    </div>
+                  </div>
+                  <div>
+                    <h5 className="font-semibold text-gray-700 mb-3">General Well-being</h5>
+                    <div className="space-y-1">
+                      <InfoField label="Sleep Quality" value={questionnaire.symptoms.sleep_quality} />
+                      <InfoField label="Stress Level" value={questionnaire.symptoms.stress_level} />
+                    </div>
+                  </div>
+                </div>
+              </CollapsibleSection>
+
+              <CollapsibleSection
+                title="Preventive Care"
+                icon={<Calendar className="h-5 w-5 text-gray-600" />}
+              >
+                <div className="space-y-1">
+                  <InfoField label="Last Check-up" value={questionnaire.preventive_care.last_checkup} />
+                  <InfoField label="Recent Vaccinations" value={questionnaire.preventive_care.vaccinations} />
+                </div>
+              </CollapsibleSection>
+
+              <CollapsibleSection
+                title="Health Recommendations & Suggestions"
+                icon={<Star className="h-5 w-5 text-gray-600" />}
+                defaultOpen={true}
+              >
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <h5 className="font-semibold text-gray-700 mb-3">Recommended Tests</h5>
+                    {questionnaire.recommendations.length > 0 ? (
+                      <div className="space-y-4">
+                        {questionnaire.recommendations.map((rec, index) => (
+                          <div key={index} className="border-b border-gray-100 pb-3 last:border-b-0">
+                            <p className="font-medium text-gray-900">{rec.test_name}</p>
+                            <p className="text-sm text-gray-600">{rec.reason}</p>
+                            <p className="text-xs text-gray-500">Category: {rec.category}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-gray-600">No specific test recommendations at this time.</p>
+                    )}
+                  </div>
+                  <div>
+                    <h5 className="font-semibold text-gray-700 mb-3">Health Suggestions</h5>
+                    {questionnaire.suggestions.length > 0 ? (
+                      <div className="space-y-4">
+                        {questionnaire.suggestions.map((sug, index) => (
+                          <div key={index} className="border-b border-gray-100 pb-3 last:border-b-0">
+                            <p className="font-medium text-gray-900">{sug.suggestion_text}</p>
+                            <p className="text-xs text-gray-500">Category: {sug.category}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-gray-600">No specific suggestions at this time.</p>
+                    )}
+                  </div>
+                </div>
+              </CollapsibleSection>
+
+              <div className="flex justify-center pt-4">
+                <a
+                  href={`http://127.0.0.1:8000/questionnaire/${questionnaire.id}/download/`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 bg-white text-[#4C7B4C] px-6 py-3 rounded-xl font-semibold hover:bg-gray-50 transition-colors duration-300 shadow-lg"
+                >
+                  <Download className="h-5 w-5" />
+                  Download Report
+                </a>
               </div>
-            </CollapsibleSection>
-          </div>
-        </InfoCard>
+            </div>
+          </InfoCard>
+        ))}
 
         {/* Next Steps */}
         <div className="bg-gradient-to-r from-[#4C7B4C] to-[#5a8a5a] rounded-2xl p-8 text-white">
@@ -413,17 +428,15 @@ export const UserDashboard: React.FC = () => {
             <Shield className="h-12 w-12 mx-auto opacity-90" />
             <h2 className="text-2xl font-bold">Next Steps</h2>
             <p className="text-white/90 max-w-2xl mx-auto leading-relaxed">
-              Share this report with your healthcare provider to discuss your personalized recommendations and create a comprehensive health plan tailored to your needs.
+              Share your reports with your healthcare provider to discuss personalized recommendations and create a comprehensive health plan tailored to your needs.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-              <a 
-                href={`http://127.0.0.1:8000/questionnaire/${questionnaire.id}/download/`} 
-                target="_blank" 
-                rel="noopener noreferrer" 
+              <a
+                href="/questionnaire"
                 className="inline-flex items-center gap-2 bg-white text-[#4C7B4C] px-6 py-3 rounded-xl font-semibold hover:bg-gray-50 transition-colors duration-300 shadow-lg"
               >
-                <Download className="h-5 w-5" />
-                Download Full Report
+                <FileText className="h-5 w-5" />
+                Submit Another Questionnaire
               </a>
               <button className="inline-flex items-center gap-2 border-2 border-white text-white px-6 py-3 rounded-xl font-semibold hover:bg-white hover:text-[#4C7B4C] transition-all duration-300">
                 <FileText className="h-5 w-5" />

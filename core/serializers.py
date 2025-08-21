@@ -39,7 +39,6 @@ class PreventiveCareSerializer(serializers.ModelSerializer):
         model = PreventiveCare
         exclude = ('user',)
 
-# NEW: Complete questionnaire serializer
 class CompleteQuestionnaireSerializer(serializers.Serializer):
     # Personal Info
     age = serializers.IntegerField(required=False)
@@ -94,7 +93,6 @@ class CompleteQuestionnaireSerializer(serializers.Serializer):
             'gender': validated_data.get('gender', ''),
             'contact': validated_data.get('contact', ''),
         }
-        # Remove None values
         personal_data = {k: v for k, v in personal_data.items() if v is not None}
         
         lifestyle_data = {
@@ -148,77 +146,29 @@ class CompleteQuestionnaireSerializer(serializers.Serializer):
         }
         preventive_data = {k: v for k, v in preventive_data.items() if v is not None}
         
-        # Create or update each model
-        personal_info, _ = PersonalInfo.objects.get_or_create(user=user, defaults=personal_data)
-        if not _:
-            for attr, value in personal_data.items():
-                setattr(personal_info, attr, value)
-            personal_info.save()
+        # Create new instances for each model
+        personal_info = PersonalInfo.objects.create(user=user, **personal_data)
+        lifestyle = Lifestyle.objects.create(user=user, **lifestyle_data)
+        medical_history = MedicalHistory.objects.create(user=user, **medical_data)
+        family_history = FamilyHistory.objects.create(user=user, **family_data)
+        measurements = Measurements.objects.create(user=user, **measurements_data)
+        symptoms = Symptoms.objects.create(user=user, **symptoms_data)
+        preventive_care = PreventiveCare.objects.create(user=user, **preventive_data)
         
-        lifestyle, _ = Lifestyle.objects.get_or_create(user=user, defaults=lifestyle_data)
-        if not _:
-            for attr, value in lifestyle_data.items():
-                setattr(lifestyle, attr, value)
-            lifestyle.save()
-        
-        medical_history, _ = MedicalHistory.objects.get_or_create(user=user, defaults=medical_data)
-        if not _:
-            for attr, value in medical_data.items():
-                setattr(medical_history, attr, value)
-            medical_history.save()
-        
-        family_history, _ = FamilyHistory.objects.get_or_create(user=user, defaults=family_data)
-        if not _:
-            for attr, value in family_data.items():
-                setattr(family_history, attr, value)
-            family_history.save()
-        
-        measurements, _ = Measurements.objects.get_or_create(user=user, defaults=measurements_data)
-        if not _:
-            for attr, value in measurements_data.items():
-                setattr(measurements, attr, value)
-            measurements.save()
-        
-        symptoms, _ = Symptoms.objects.get_or_create(user=user, defaults=symptoms_data)
-        if not _:
-            for attr, value in symptoms_data.items():
-                setattr(symptoms, attr, value)
-            symptoms.save()
-        
-        preventive_care, _ = PreventiveCare.objects.get_or_create(user=user, defaults=preventive_data)
-        if not _:
-            for attr, value in preventive_data.items():
-                setattr(preventive_care, attr, value)
-            preventive_care.save()
-        
-        # Create or update main questionnaire
-        questionnaire, created = HealthQuestionnaire.objects.get_or_create(
+        # Create new HealthQuestionnaire instance
+        questionnaire = HealthQuestionnaire.objects.create(
             user=user,
-            defaults={
-                'personal_info': personal_info,
-                'lifestyle': lifestyle,
-                'medical_history': medical_history,
-                'family_history': family_history,
-                'measurements': measurements,
-                'symptoms': symptoms,
-                'preventive_care': preventive_care,
-                'status': 'pending'
-            }
+            personal_info=personal_info,
+            lifestyle=lifestyle,
+            medical_history=medical_history,
+            family_history=family_history,
+            measurements=measurements,
+            symptoms=symptoms,
+            preventive_care=preventive_care,
+            status='pending'
         )
         
-        if not created:
-            questionnaire.personal_info = personal_info
-            questionnaire.lifestyle = lifestyle
-            questionnaire.medical_history = medical_history
-            questionnaire.family_history = family_history
-            questionnaire.measurements = measurements
-            questionnaire.symptoms = symptoms
-            questionnaire.preventive_care = preventive_care
-            questionnaire.status = 'pending'
-            questionnaire.save()
-        
         return questionnaire
-
 
 class RecommendationSerializer(serializers.ModelSerializer):
     class Meta:
@@ -230,7 +180,6 @@ class SuggestionSerializer(serializers.ModelSerializer):
         model = Suggestion
         fields = ['suggestion_text', 'category']
 
-        
 class HealthQuestionnaireSerializer(serializers.ModelSerializer):
     personal_info = PersonalInfoSerializer()
     lifestyle = LifestyleSerializer()

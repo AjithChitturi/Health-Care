@@ -7,7 +7,7 @@ def generate_recommendations(questionnaire):
     based on user inputs for medical conditions, lifestyle, age, BMI, and activity level.
     All recommendations and suggestions are saved to the database.
     """
-    # Clear any old recommendations/suggestions to avoid duplicates on re-submission
+    # Clear any old recommendations/suggestions to avoid duplicates
     Recommendation.objects.filter(questionnaire=questionnaire).delete()
     Suggestion.objects.filter(questionnaire=questionnaire).delete()
 
@@ -96,7 +96,7 @@ def generate_recommendations(questionnaire):
         )
 
     # 4. High Cholesterol
-    if questionnaire.measurements.cholesterol and float(questionnaire.measurements.cholesterol.split()[0]) > 5.2:  # Assuming mmol/L
+    if questionnaire.measurements.cholesterol and float(questionnaire.measurements.cholesterol.split()[0]) > 5.2:
         tests = [
             ("Lipid Profile (Repeat)", "To confirm and monitor high cholesterol levels.", "Blood Test"),
             ("LFT", "To assess liver function, as statins for cholesterol may affect the liver.", "Blood Test"),
