@@ -14,6 +14,8 @@ from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404 
 from django.template.loader import render_to_string 
 from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 
 # HARDCODED ADMIN CREDENTIALS
 ADMIN_USERNAME = "healthadmin"  # Change this to your desired admin username
@@ -83,6 +85,7 @@ class PreventiveCareViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class HealthQuestionnaireViewSet(viewsets.ModelViewSet):
     queryset = HealthQuestionnaire.objects.all()
     serializer_class = HealthQuestionnaireSerializer
@@ -90,7 +93,7 @@ class HealthQuestionnaireViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if is_admin_user(user):  # Use custom admin check
+        if is_admin_user(user):
             return HealthQuestionnaire.objects.all()
         return HealthQuestionnaire.objects.filter(user=user)
         

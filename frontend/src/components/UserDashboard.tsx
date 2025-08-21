@@ -174,11 +174,34 @@ export const UserDashboard: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await api.getQuestionnaire(); 
-        setQuestionnaire(res.data[0] || null); 
-      } catch (err) {
-        setError('Failed to load your questionnaire data. Please try again later.');
-        console.error(err);
+        console.log('Fetching questionnaire data...');
+        const res = await api.getQuestionnaire();
+        console.log('API Response:', res.data);
+        
+        // Handle different response structures
+        if (res.data && Array.isArray(res.data)) {
+          if (res.data.length > 0) {
+            setQuestionnaire(res.data[0]);
+          } else {
+            console.log('No questionnaires found');
+            setQuestionnaire(null);
+          }
+        } else if (res.data && typeof res.data === 'object') {
+          // Handle single object response
+          setQuestionnaire(res.data);
+        } else {
+          console.log('Unexpected response format:', res.data);
+          setQuestionnaire(null);
+        }
+      } catch (err: any) {
+        console.error('Error fetching questionnaire:', err);
+        if (err.response?.status === 401) {
+          setError('Please log in to view your dashboard.');
+        } else if (err.response?.status === 404) {
+          setError('No questionnaire found. Please submit one first.');
+        } else {
+          setError('Failed to load your questionnaire data. Please try again later.');
+        }
       } finally {
         setLoading(false);
       }
@@ -203,7 +226,13 @@ export const UserDashboard: React.FC = () => {
         <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-8 text-center">
           <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-gray-900 mb-2">Unable to Load Data</h2>
-          <p className="text-gray-600">{error}</p>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="bg-[#4C7B4C] text-white px-4 py-2 rounded-lg hover:bg-[#5a8a5a] transition-colors"
+          >
+            Try Again
+          </button>
         </div>
       </div>
     );
@@ -305,7 +334,7 @@ export const UserDashboard: React.FC = () => {
         >
           {hasRecommendations ? (
             <div className="space-y-6">
-              {questionnaire.recommendations.length > 0 && (
+              {questionnaire.recommendations && questionnaire.recommendations.length > 0 && (
                 <div>
                   <h4 className="font-semibold text-green-800 mb-4 flex items-center gap-2">
                     <Stethoscope className="h-5 w-5" />
@@ -332,7 +361,7 @@ export const UserDashboard: React.FC = () => {
                 </div>
               )}
 
-              {questionnaire.suggestions.length > 0 && (
+              {questionnaire.suggestions && questionnaire.suggestions.length > 0 && (
                 <div className="pt-4 border-t border-green-200">
                   <h4 className="font-semibold text-green-800 mb-4 flex items-center gap-2">
                     <Heart className="h-5 w-5" />
@@ -383,9 +412,9 @@ export const UserDashboard: React.FC = () => {
                 icon={<User className="h-5 w-5 text-gray-600" />}
               >
                 <div className="space-y-1">
-                  <InfoField label="Age" value={questionnaire.personal_info.age} />
-                  <InfoField label="Gender" value={questionnaire.personal_info.gender} />
-                  <InfoField label="Contact" value={questionnaire.personal_info.contact} />
+                  <InfoField label="Age" value={questionnaire.personal_info?.age} />
+                  <InfoField label="Gender" value={questionnaire.personal_info?.gender} />
+                  <InfoField label="Contact" value={questionnaire.personal_info?.contact} />
                 </div>
               </CollapsibleSection>
 
@@ -394,10 +423,10 @@ export const UserDashboard: React.FC = () => {
                 icon={<Activity className="h-5 w-5 text-gray-600" />}
               >
                 <div className="space-y-1">
-                  <InfoField label="Smoking Status" value={questionnaire.lifestyle.smoking_status} />
-                  <InfoField label="Alcohol Consumption" value={questionnaire.lifestyle.alcohol_consumption} />
-                  <InfoField label="Physical Activity" value={questionnaire.lifestyle.physical_activity} />
-                  <InfoField label="Diet" value={questionnaire.lifestyle.diet} />
+                  <InfoField label="Smoking Status" value={questionnaire.lifestyle?.smoking_status} />
+                  <InfoField label="Alcohol Consumption" value={questionnaire.lifestyle?.alcohol_consumption} />
+                  <InfoField label="Physical Activity" value={questionnaire.lifestyle?.physical_activity} />
+                  <InfoField label="Diet" value={questionnaire.lifestyle?.diet} />
                 </div>
               </CollapsibleSection>
 
@@ -406,12 +435,12 @@ export const UserDashboard: React.FC = () => {
                 icon={<Heart className="h-5 w-5 text-gray-600" />}
               >
                 <div className="space-y-1">
-                  <InfoField label="Diabetes" value={questionnaire.medical_history.diabetes} />
-                  <InfoField label="Hypertension" value={questionnaire.medical_history.hypertension} />
-                  <InfoField label="Heart Disease" value={questionnaire.medical_history.heart_disease} />
-                  <InfoField label="Other Conditions" value={questionnaire.medical_history.other_conditions} />
-                  <InfoField label="Current Medications" value={questionnaire.medical_history.medications} />
-                  <InfoField label="Allergies" value={questionnaire.medical_history.allergies} />
+                  <InfoField label="Diabetes" value={questionnaire.medical_history?.diabetes} />
+                  <InfoField label="Hypertension" value={questionnaire.medical_history?.hypertension} />
+                  <InfoField label="Heart Disease" value={questionnaire.medical_history?.heart_disease} />
+                  <InfoField label="Other Conditions" value={questionnaire.medical_history?.other_conditions} />
+                  <InfoField label="Current Medications" value={questionnaire.medical_history?.medications} />
+                  <InfoField label="Allergies" value={questionnaire.medical_history?.allergies} />
                 </div>
               </CollapsibleSection>
 
@@ -420,10 +449,10 @@ export const UserDashboard: React.FC = () => {
                 icon={<Users className="h-5 w-5 text-gray-600" />}
               >
                 <div className="space-y-1">
-                  <InfoField label="Family Diabetes" value={questionnaire.family_history.diabetes} />
-                  <InfoField label="Family Heart Disease" value={questionnaire.family_history.heart_disease} />
-                  <InfoField label="Family Cancer" value={questionnaire.family_history.cancer} />
-                  <InfoField label="Other Family Conditions" value={questionnaire.family_history.other} />
+                  <InfoField label="Family Diabetes" value={questionnaire.family_history?.diabetes} />
+                  <InfoField label="Family Heart Disease" value={questionnaire.family_history?.heart_disease} />
+                  <InfoField label="Family Cancer" value={questionnaire.family_history?.cancer} />
+                  <InfoField label="Other Family Conditions" value={questionnaire.family_history?.other} />
                 </div>
               </CollapsibleSection>
 
@@ -435,17 +464,17 @@ export const UserDashboard: React.FC = () => {
                   <div>
                     <h5 className="font-semibold text-gray-700 mb-3">Physical Measurements</h5>
                     <div className="space-y-1">
-                      <InfoField label="Height (cm)" value={questionnaire.measurements.height_cm} />
-                      <InfoField label="Weight (kg)" value={questionnaire.measurements.weight_kg} />
-                      <InfoField label="BMI" value={questionnaire.measurements.bmi} />
+                      <InfoField label="Height (cm)" value={questionnaire.measurements?.height_cm} />
+                      <InfoField label="Weight (kg)" value={questionnaire.measurements?.weight_kg} />
+                      <InfoField label="BMI" value={questionnaire.measurements?.bmi} />
                     </div>
                   </div>
                   <div>
                     <h5 className="font-semibold text-gray-700 mb-3">Vital Signs</h5>
                     <div className="space-y-1">
-                      <InfoField label="Blood Pressure" value={questionnaire.measurements.blood_pressure} />
-                      <InfoField label="Blood Sugar" value={questionnaire.measurements.blood_sugar} />
-                      <InfoField label="Cholesterol" value={questionnaire.measurements.cholesterol} />
+                      <InfoField label="Blood Pressure" value={questionnaire.measurements?.blood_pressure} />
+                      <InfoField label="Blood Sugar" value={questionnaire.measurements?.blood_sugar} />
+                      <InfoField label="Cholesterol" value={questionnaire.measurements?.cholesterol} />
                     </div>
                   </div>
                 </div>
@@ -459,16 +488,16 @@ export const UserDashboard: React.FC = () => {
                   <div>
                     <h5 className="font-semibold text-gray-700 mb-3">Symptoms</h5>
                     <div className="space-y-1">
-                      <InfoField label="Chest Pain" value={questionnaire.symptoms.chest_pain} />
-                      <InfoField label="Breathlessness" value={questionnaire.symptoms.breathlessness} />
-                      <InfoField label="Fatigue" value={questionnaire.symptoms.fatigue} />
+                      <InfoField label="Chest Pain" value={questionnaire.symptoms?.chest_pain} />
+                      <InfoField label="Breathlessness" value={questionnaire.symptoms?.breathlessness} />
+                      <InfoField label="Fatigue" value={questionnaire.symptoms?.fatigue} />
                     </div>
                   </div>
                   <div>
                     <h5 className="font-semibold text-gray-700 mb-3">General Well-being</h5>
                     <div className="space-y-1">
-                      <InfoField label="Sleep Quality" value={questionnaire.symptoms.sleep_quality} />
-                      <InfoField label="Stress Level" value={questionnaire.symptoms.stress_level} />
+                      <InfoField label="Sleep Quality" value={questionnaire.symptoms?.sleep_quality} />
+                      <InfoField label="Stress Level" value={questionnaire.symptoms?.stress_level} />
                     </div>
                   </div>
                 </div>
@@ -516,4 +545,3 @@ export const UserDashboard: React.FC = () => {
     </div>
   );
 };
-

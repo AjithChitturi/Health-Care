@@ -38,12 +38,13 @@ apiClient.interceptors.response.use(
 export const api = {
   // --- AUTHENTICATION ---
   login: (credentials: { username: string; password: string }) =>
-    apiClient.post('auth/login/', credentials),
+    apiClient.post('/auth/login/', credentials),
 
   register: (userData: { username: string; email: string; password: string; password2: string }) =>
-    apiClient.post('auth/register/', userData),
+    apiClient.post('/auth/register/', userData),
 
   // --- USER QUESTIONNAIRES ---
+  // Fixed: removed extra slash
   getQuestionnaire: () =>
     apiClient.get('/health-questionnaires/'),
 
