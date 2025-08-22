@@ -15,7 +15,6 @@ from .serializers import (
 from .services import generate_recommendations
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
-from django.template.loader import render_to_string
 from django.http import HttpResponse
 from rest_framework import generics
 from .auth_serializers import RegisterSerializer
@@ -71,12 +70,15 @@ class HealthQuestionnaireViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.is_staff:
-            return HealthQuestionnaire.objects.all()
+        if user.username == 'admin':  # Hardcoded admin username
+            return HealthQuestionnaire.objects.all().order_by('-submitted_at')
         return HealthQuestionnaire.objects.filter(user=user).order_by('-submitted_at')
 
-    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def review(self, request, pk=None):
+        if request.user.username != 'admin':  # Restrict to admin user
+            return Response({'error': 'Only the admin user can review submissions.'}, status=status.HTTP_403_FORBIDDEN)
+
         questionnaire = self.get_object()
         feedback = request.data.get('admin_feedback', '')
         status_val = request.data.get('status', 'approved')
@@ -88,7 +90,7 @@ class HealthQuestionnaireViewSet(viewsets.ModelViewSet):
         if questionnaire.user.email:
             send_mail(
                 'Your Health Report has been Reviewed',
-                f'Hello {questionnaire.user.username},\n\nA doctor has reviewed your health submission and added feedback. Please log in to your dashboard to view the details.\n\nFeedback provided: "{feedback}"\n\nThank you,\nThe Proactive Health Platform',
+                f'Hello {questionnaire.user.username},\n\nThe admin has reviewed your health submission and added feedback. Please log in to your dashboard to view the details.\n\nFeedback provided: "{feedback}"\n\nThank you,\nThe Proactive Health Platform',
                 'no-reply@healthplatform.com',
                 [questionnaire.user.email],
                 fail_silently=False,
@@ -96,8 +98,11 @@ class HealthQuestionnaireViewSet(viewsets.ModelViewSet):
             
         return Response({'status': 'updated', 'admin_feedback': feedback})
 
-    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAdminUser])
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
     def pending(self, request):
+        if request.user.username != 'admin':  # Restrict to admin user
+            return Response({'error': 'Only the admin user can view pending submissions.'}, status=status.HTTP_403_FORBIDDEN)
+
         pending_qs = HealthQuestionnaire.objects.filter(status='pending')
         serializer = self.get_serializer(pending_qs, many=True)
         return Response(serializer.data)
@@ -118,7 +123,7 @@ class HealthQuestionnaireViewSet(viewsets.ModelViewSet):
 def download_report_view(request, pk):
     questionnaire = get_object_or_404(HealthQuestionnaire, pk=pk)
     
-    if not (request.user.is_staff or request.user == questionnaire.user):
+    if not (request.user.username == 'admin' or request.user == questionnaire.user):
         return HttpResponse("Unauthorized", status=403)
         
     html_string = render_to_string('reports/report_template.html', {'q': questionnaire})

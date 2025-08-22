@@ -1,5 +1,3 @@
-// src/App.tsx
-
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 
@@ -12,62 +10,62 @@ import { Questionnaire } from './components/Questionnaire';
 import { UserDashboard } from './components/UserDashboard';
 import { LoginForm } from './components/auth/LoginForm';
 import { RegisterForm } from './components/auth/RegisterForm';
-import { AdminDashboard } from './components/AdminDashboard'; 
+import { AdminDashboard } from './components/AdminDashboard';
 
-
-// Helper function to decode JWT. In a real app, use a library like `jwt-decode`.
-const decodeToken = (token: string): { user_id: number; is_staff: boolean; exp: number } | null => {
+// Helper function to decode JWT
+const decodeToken = (token: string): { user_id: number; username: string; exp: number } | null => {
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
-    // Check if the token has an 'is_staff' claim
-    return 'is_staff' in payload ? payload : null;
+    // Check if the token has a 'username' claim
+    return 'username' in payload ? payload : null;
   } catch (error) {
     console.error("Failed to decode token", error);
     return null;
   }
 };
 
-
-// A placeholder component for the admin's detailed review page.
-// In a real app, this would be a full-featured component.
+// Placeholder component for admin's detailed review page
 const AdminReviewPage = () => {
-    const { id } = useParams();
-    // This component would fetch `/questionnaire/${id}` and show the full data
-    // plus a form for admins to submit feedback.
-    return <h1>Reviewing Submission ID: {id}</h1>;
+  const { id } = useParams();
+  return <h1>Reviewing Submission ID: {id}</h1>;
 };
 
 const App: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
   const [userRole, setUserRole] = useState<'patient' | 'admin' | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-        const decoded = decodeToken(token);
-        if (decoded) {
-            setUserRole(decoded.is_staff ? 'admin' : 'patient');
-        }
-    } else {
+      const decoded = decodeToken(token);
+      if (decoded) {
+        setUsername(decoded.username);
+        setUserRole(decoded.username === 'admin' ? 'admin' : 'patient');
+      } else {
+        setUsername(null);
         setUserRole(null);
+      }
+    } else {
+      setUsername(null);
+      setUserRole(null);
     }
   }, [isLoggedIn]);
 
-
   const handleLoginSuccess = () => {
     setIsLoggedIn(true);
-    // After logging in, we could re-check the token or trust the useEffect hook to run
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('token'); // or 'access_token'
+    localStorage.removeItem('token');
     setIsLoggedIn(false);
     setUserRole(null);
+    setUsername(null);
   };
 
   return (
     <>
-      <Navbar isLoggedIn={isLoggedIn} userRole={userRole} onLogout={handleLogout} />
+      <Navbar isLoggedIn={isLoggedIn} userRole={userRole} username={username} onLogout={handleLogout} />
       <Routes>
         {/* --- PUBLIC ROUTES --- */}
         <Route path="/" element={<LandingPage />} />

@@ -90,44 +90,44 @@ const StatCard: React.FC<{
 );
 
 export const AdminDashboard: React.FC = () => {
-    const [pending, setPending] = useState<QuestionnaireSummary[]>([]);
+    const [submissions, setSubmissions] = useState<QuestionnaireSummary[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
 
     useEffect(() => {
-        const fetchPending = async () => {
+        const fetchAllSubmissions = async () => {
             try {
-                const res = await api.getPendingReviews();
+                const res = await api.getQuestionnaire();  // Fetches all questionnaires for admin
                 const summaryData = res.data.map((q: any) => ({
                     id: q.id,
-                    user: { username: q.personal_info.contact || `User ${q.id}` }, 
+                    user: { username: q.username || `User ${q.id}` }, 
                     status: q.status,
                     submitted_at: q.submitted_at
                 }));
-                setPending(summaryData);
+                setSubmissions(summaryData);
             } catch (err) {
-                setError('Failed to fetch pending reviews. You may not have admin privileges.');
+                setError('Failed to fetch submissions. You may not have admin privileges.');
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchPending();
+        fetchAllSubmissions();
     }, []);
 
-    const filteredSubmissions = pending.filter(submission => {
+    const filteredSubmissions = submissions.filter(submission => {
         const matchesSearch = submission.user.username.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesStatus = statusFilter === 'all' || submission.status.toLowerCase() === statusFilter.toLowerCase();
         return matchesSearch && matchesStatus;
     });
 
     const stats = {
-        total: pending.length,
-        pending: pending.filter(q => q.status.toLowerCase() === 'pending').length,
-        reviewed: pending.filter(q => q.status.toLowerCase() === 'reviewed').length,
-        recent: pending.filter(q => {
+        total: submissions.length,
+        pending: submissions.filter(q => q.status.toLowerCase() === 'pending').length,
+        reviewed: submissions.filter(q => q.status.toLowerCase() === 'reviewed').length,
+        recent: submissions.filter(q => {
             const submittedDate = new Date(q.submitted_at);
             const yesterday = new Date();
             yesterday.setDate(yesterday.getDate() - 1);
@@ -151,94 +151,88 @@ export const AdminDashboard: React.FC = () => {
             <div className="min-h-screen bg-[#F5F9F5] flex items-center justify-center p-4">
                 <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-8 text-center border border-red-200">
                     <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-                    <h2 className="text-xl font-bold text-gray-900 mb-2">Access Denied</h2>
-                    <p className="text-red-600">{error}</p>
+                    <h2 className="text-xl font-bold text-gray-900 mb-2">Unable to Load Data</h2>
+                    <p className="text-gray-600">{error}</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-[#F5F9F5] py-8 px-4">
-            <div className="max-w-7xl mx-auto space-y-8">
+        <div className="min-h-screen bg-[#F5F9F5] py-12 px-4">
+            <div className="max-w-6xl mx-auto space-y-8">
                 {/* Header */}
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                    <div className="bg-gradient-to-r from-[#4C7B4C] to-[#5a8a5a] p-8 text-white">
-                        <div className="flex items-center gap-4 mb-4">
-                            <div className="bg-white/20 rounded-2xl p-3">
-                                <Settings className="h-8 w-8 text-white" />
-                            </div>
-                            <div>
-                                <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-                                <p className="text-white/90">Manage health questionnaire submissions</p>
-                            </div>
+                <div className="text-center mb-12">
+                    <div className="flex items-center justify-center gap-3 mb-6">
+                        <div className="p-3 bg-gradient-to-br from-[#4C7B4C] to-[#5a8a5a] rounded-2xl shadow-lg">
+                            <Settings className="h-8 w-8 text-white" />
                         </div>
+                        <h1 className="text-4xl font-bold text-gray-900">Admin Dashboard</h1>
                     </div>
+                    <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+                        Manage and review all user submissions
+                    </p>
                 </div>
 
-                {/* Statistics Cards */}
+                {/* Stats Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <StatCard
-                        icon={<FileText className="h-6 w-6" />}
+                        icon={<FileText className="h-8 w-8" />}
                         title="Total Submissions"
                         value={stats.total}
                         subtitle="All time"
-                        gradient="from-blue-500 to-blue-600"
+                        gradient="from-[#4C7B4C] to-[#5a8a5a]"
                     />
                     <StatCard
-                        icon={<Clock className="h-6 w-6" />}
+                        icon={<Clock className="h-8 w-8" />}
                         title="Pending Reviews"
                         value={stats.pending}
-                        subtitle="Awaiting review"
-                        gradient="from-yellow-500 to-yellow-600"
+                        subtitle="Require attention"
+                        gradient="from-yellow-400 to-yellow-500"
                     />
                     <StatCard
-                        icon={<CheckCircle className="h-6 w-6" />}
+                        icon={<CheckCircle className="h-8 w-8" />}
                         title="Reviewed"
                         value={stats.reviewed}
                         subtitle="Completed"
-                        gradient="from-green-500 to-green-600"
+                        gradient="from-green-400 to-green-500"
                     />
                     <StatCard
-                        icon={<TrendingUp className="h-6 w-6" />}
-                        title="Recent (24h)"
+                        icon={<TrendingUp className="h-8 w-8" />}
+                        title="Recent"
                         value={stats.recent}
-                        subtitle="New submissions"
-                        gradient="from-purple-500 to-purple-600"
+                        subtitle="Last 24 hours"
+                        gradient="from-blue-400 to-blue-500"
                     />
                 </div>
 
-                {/* Main Content */}
+                {/* Submissions Table Section */}
                 <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
                     <div className="p-6 border-b border-gray-100 bg-[#F5F9F5]">
-                        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2.5 rounded-xl bg-gradient-to-br from-[#4C7B4C] to-[#5a8a5a] shadow-lg">
-                                    <Users className="h-6 w-6 text-white" />
-                                </div>
-                                <h2 className="text-2xl font-bold text-gray-800">Pending Reviews</h2>
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                            <div>
+                                <h2 className="text-2xl font-bold text-gray-800">All Submissions</h2>
+                                <p className="text-sm text-gray-600 mt-1">Review and manage user health questionnaires</p>
                             </div>
-                            
-                            {/* Search and Filter */}
-                            <div className="flex flex-col sm:flex-row gap-3">
-                                <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                            <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 w-full md:w-auto">
+                                <div className="relative flex-1">
+                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                                     <input
                                         type="text"
-                                        placeholder="Search by user..."
+                                        placeholder="Search by username..."
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4C7B4C] focus:border-transparent w-full sm:w-64"
+                                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4C7B4C] focus:border-transparent"
                                     />
                                 </div>
-                                <div className="relative">
-                                    <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                                <div className="relative flex-1">
+                                    <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                                     <select
                                         value={statusFilter}
                                         onChange={(e) => setStatusFilter(e.target.value)}
-                                        className="pl-10 pr-8 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4C7B4C] focus:border-transparent appearance-none bg-white"
+                                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4C7B4C] focus:border-transparent appearance-none"
                                     >
-                                        <option value="all">All Status</option>
+                                        <option value="all">All Statuses</option>
                                         <option value="pending">Pending</option>
                                         <option value="reviewed">Reviewed</option>
                                         <option value="approved">Approved</option>
@@ -247,11 +241,10 @@ export const AdminDashboard: React.FC = () => {
                             </div>
                         </div>
                     </div>
-
                     <div className="overflow-x-auto">
                         {filteredSubmissions.length > 0 ? (
-                            <table className="w-full">
-                                <thead className="bg-gray-50 border-b border-gray-200">
+                            <table className="min-w-full divide-y divide-gray-100">
+                                <thead className="bg-gray-50">
                                     <tr>
                                         <th className="text-left py-4 px-6 font-semibold text-gray-700">User</th>
                                         <th className="text-left py-4 px-6 font-semibold text-gray-700">Status</th>

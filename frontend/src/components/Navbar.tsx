@@ -1,5 +1,3 @@
-// src/components/Navbar.tsx
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Menu, X, Shield, Settings } from 'lucide-react';
@@ -7,10 +5,11 @@ import { Menu, X, Shield, Settings } from 'lucide-react';
 interface NavbarProps {
   isLoggedIn: boolean;
   userRole: 'patient' | 'admin' | null;
+  username: string | null;
   onLogout?: () => void;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, userRole, onLogout }) => {
+const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, userRole, username, onLogout }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const toggleMobileMenu = () => {
@@ -74,6 +73,9 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, userRole, onLogout }) => {
                 )}
 
                 <div className="flex items-center space-x-3">
+                  {username && (
+                    <span className="text-gray-700 font-medium">Hello, {username}</span>
+                  )}
                   <div className="h-8 w-px bg-gray-300"></div>
                   <button 
                     onClick={onLogout}
@@ -126,6 +128,9 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn, userRole, onLogout }) => {
               
               {isLoggedIn ? (
                 <>
+                  {username && (
+                    <span className="text-gray-700 font-medium px-4 py-2">Hello, {username}</span>
+                  )}
                   <Link 
                     to="/dashboard" 
                     className="text-gray-600 hover:text-[#4C7B4C] font-medium px-4 py-2 rounded-lg hover:bg-white transition-colors duration-300"

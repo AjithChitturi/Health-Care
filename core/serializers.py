@@ -3,6 +3,7 @@ from .models import (
     PersonalInfo, Lifestyle, MedicalHistory, FamilyHistory, Measurements,
     Symptoms, PreventiveCare, HealthQuestionnaire, Suggestion, Recommendation
 )
+from django.contrib.auth.models import User
 
 class PersonalInfoSerializer(serializers.ModelSerializer):
     class Meta:
@@ -190,6 +191,7 @@ class HealthQuestionnaireSerializer(serializers.ModelSerializer):
     preventive_care = PreventiveCareSerializer()
     recommendations = RecommendationSerializer(many=True, read_only=True)
     suggestions = SuggestionSerializer(many=True, read_only=True)
+    username = serializers.CharField(source='user.username', read_only=True)
 
     class Meta:
         model = HealthQuestionnaire
